@@ -4,8 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Calculadora de rescisao trabalhista (CLT) - estimativa simplificada para demissao sem justa causa. Roda offline no seu navegador.">
-  <title>Calculadora de Rescisao CLT</title>
+  <meta name="description" content="Calculadora de rescisão trabalhista (CLT) — estimativa simplificada para demissão sem justa causa. Roda offline no seu navegador, sem enviar dados a servidor.">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Calculadora de Rescisão Trabalhista (CLT)">
+  <meta property="og:description" content="Estime suas verbas rescisórias em demissão sem justa causa. Rápido, offline e privado — todos os cálculos rodam no seu navegador.">
+  <meta property="og:locale" content="pt_BR">
+  <title>Calculadora de Rescisão Trabalhista (CLT)</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     :root {
@@ -190,34 +195,34 @@
 </head>
 <body>
 <main>
-  <h1>Calculadora de Rescisao CLT</h1>
-  <p class="subtitle">Demissao sem justa causa &mdash; estimativa simplificada.</p>
+  <h1>Calculadora de Rescisão CLT</h1>
+  <p class="subtitle">Demissão sem justa causa &mdash; estimativa simplificada.</p>
 
   <div class="disclaimer" role="note">
-    <strong>Aviso.</strong> Esta e uma estimativa simplificada. Nao considera justa causa, pedido de demissao,
-    rescisao por acordo, descontos de INSS/IRRF, adicionais (insalubridade, periculosidade, noturno),
-    horas extras, comissoes, medias variaveis nem outras parcelas. Nao substitui calculo oficial nem orientacao juridica.
+    <strong>Aviso.</strong> Esta é uma estimativa simplificada. Não considera justa causa, pedido de demissão,
+    rescisão por acordo, descontos de INSS/IRRF, adicionais (insalubridade, periculosidade, noturno),
+    horas extras, comissões, médias variáveis nem outras parcelas. Não substitui cálculo oficial nem orientação jurídica.
   </div>
 
   <form id="form" novalidate>
     <div class="field">
-      <label for="salario">Salario mensal bruto (R$)</label>
+      <label for="salario">Salário mensal bruto (R$)</label>
       <input id="salario" name="salario" type="number" inputmode="decimal" min="0" step="0.01" required>
-      <span class="hint">Salario fixo, sem adicionais nem medias variaveis.</span>
+      <span class="hint">Salário fixo, sem adicionais nem médias variáveis.</span>
     </div>
 
     <div class="field">
-      <label for="admissao">Data de admissao</label>
+      <label for="admissao">Data de admissão</label>
       <input id="admissao" name="admissao" type="date" required>
     </div>
 
     <div class="field">
-      <label for="desligamento">Data de desligamento (ultimo dia trabalhado)</label>
+      <label for="desligamento">Data de desligamento (último dia trabalhado)</label>
       <input id="desligamento" name="desligamento" type="date" required>
     </div>
 
     <div class="field">
-      <label for="tipoAviso">Tipo de aviso previo</label>
+      <label for="tipoAviso">Tipo de aviso prévio</label>
       <select id="tipoAviso" name="tipoAviso" required>
         <option value="indenizado">Indenizado</option>
         <option value="trabalhado">Trabalhado</option>
@@ -227,23 +232,23 @@
     <div class="field">
       <label for="fgts">Saldo total de FGTS informado (R$)</label>
       <input id="fgts" name="fgts" type="number" inputmode="decimal" min="0" step="0.01" required>
-      <span class="hint">Consulte no app FGTS ou no extrato. Nao recalculamos os depositos.</span>
+      <span class="hint">Consulte no app FGTS ou no extrato. Não recalculamos os depósitos.</span>
     </div>
 
     <div class="check">
       <input id="feriasVencidas" name="feriasVencidas" type="checkbox">
-      <label for="feriasVencidas">Tenho ferias vencidas (1 periodo aquisitivo completo nao gozado)</label>
+      <label for="feriasVencidas">Tenho férias vencidas (1 período aquisitivo completo não gozado)</label>
     </div>
 
     <details>
-      <summary>Configuracoes avancadas</summary>
+      <summary>Configurações avançadas</summary>
       <div class="check">
         <input id="projecao" name="projecao" type="checkbox" checked>
         <label for="projecao">
-          Projetar o aviso indenizado no tempo de servico
+          Projetar o aviso indenizado no tempo de serviço
           <span class="hint" style="display:block;font-weight:400;">
-            Ligado por padrao (art. 487, &sect;1&ordm;, CLT + OJ 82 da SDI-1 do TST).
-            Desligue apenas se tiver motivo especifico.
+            Ligado por padrão (art. 487, &sect;1&ordm;, CLT + OJ 82 da SDI-1 do TST).
+            Desligue apenas se tiver motivo específico.
           </span>
         </label>
       </div>
@@ -260,17 +265,17 @@
     <ul id="verbas" class="verbas"></ul>
 
     <div id="avisoTrabalhadoBox" class="info-line" style="display:none;">
-      <strong id="avisoTrabalhadoTitulo">Aviso previo trabalhado</strong>
+      <strong id="avisoTrabalhadoTitulo">Aviso prévio trabalhado</strong>
       <span id="avisoTrabalhadoTexto"></span>
       <small>
-        Durante o aviso trabalhado, o art. 488 da CLT preve reducao de 2 horas/dia ou 7 dias corridos
-        sem prejuizo do salario. Esta calculadora nao simula essa escolha pratica.
+        Durante o aviso trabalhado, o art. 488 da CLT prevê redução de 2 horas/dia ou 7 dias corridos
+        sem prejuízo do salário. Esta calculadora não simula essa escolha prática.
       </small>
     </div>
 
     <div id="alertaFeriasDobro" class="disclaimer" style="display:none;">
-      <strong>Atencao.</strong> Ferias vencidas concedidas fora do prazo legal (art. 137 da CLT) podem gerar
-      direito a pagamento em dobro, o que nao e calculado automaticamente por esta ferramenta.
+      <strong>Atenção.</strong> Férias vencidas concedidas fora do prazo legal (art. 137 da CLT) podem gerar
+      direito a pagamento em dobro, o que não é calculado automaticamente por esta ferramenta.
       Verifique com um profissional especializado.
     </div>
 
@@ -280,13 +285,13 @@
     </div>
 
     <p class="subtitle" style="margin-top:16px;">
-      Resultado aproximado. Nao substitui calculo oficial. Consulte um profissional especializado
-      em caso de duvida sobre seus direitos.
+      Resultado aproximado. Não substitui cálculo oficial. Consulte um profissional especializado
+      em caso de dúvida sobre seus direitos.
     </p>
   </section>
 
   <p class="footer">
-    Privacidade: todos os calculos acontecem no seu navegador. Nenhum dado e enviado a servidor.
+    Privacidade: todos os cálculos acontecem no seu navegador. Nenhum dado é enviado a servidor.
   </p>
 </main>
 
@@ -475,36 +480,36 @@ function calcularRescisao(input) {
 
   const verbas = [];
   verbas.push({
-    titulo: "Saldo de salario",
-    detalhe: saldo.dias + " dia(s) trabalhado(s) no mes",
+    titulo: "Saldo de salário",
+    detalhe: saldo.dias + " dia(s) trabalhado(s) no mês",
     valor: saldo.valor,
   });
 
   if (tipoAviso === "indenizado") {
     verbas.push({
-      titulo: "Aviso previo indenizado",
-      detalhe: diasAviso + " dia(s) (Lei 12.506/2011)" + (projecaoLigada ? " - projetado no tempo de servico" : ""),
+      titulo: "Aviso prévio indenizado",
+      detalhe: diasAviso + " dia(s) (Lei 12.506/2011)" + (projecaoLigada ? " — projetado no tempo de serviço" : ""),
       valor: calcAvisoIndenizadoValor(salario, diasAviso),
     });
   }
 
   verbas.push({
-    titulo: "13o salario proporcional",
-    detalhe: decimoTerceiro.avos + "/12 (regra dos 15 dias - Lei 4.090/62)",
+    titulo: "13º salário proporcional",
+    detalhe: decimoTerceiro.avos + "/12 (regra dos 15 dias — Lei 4.090/62)",
     valor: decimoTerceiro.valor,
   });
 
   if (temFeriasVencidas) {
     verbas.push({
-      titulo: "Ferias vencidas + 1/3",
-      detalhe: "1 periodo aquisitivo completo",
+      titulo: "Férias vencidas + 1/3",
+      detalhe: "1 período aquisitivo completo",
       valor: feriasVenc,
     });
   }
 
   verbas.push({
-    titulo: "Ferias proporcionais + 1/3",
-    detalhe: feriasProp.avos + "/12 (criterio dos 15 dias)",
+    titulo: "Férias proporcionais + 1/3",
+    detalhe: feriasProp.avos + "/12 (critério dos 15 dias)",
     valor: feriasProp.valor,
   });
 
@@ -550,14 +555,14 @@ function lerFormulario() {
   const projecaoLigada = document.getElementById("projecao").checked;
 
   const erros = [];
-  if (!isFinite(salario) || salario <= 0) erros.push("Informe um salario maior que zero.");
-  if (!admissao) erros.push("Informe a data de admissao.");
+  if (!isFinite(salario) || salario <= 0) erros.push("Informe um salário maior que zero.");
+  if (!admissao) erros.push("Informe a data de admissão.");
   if (!desligamento) erros.push("Informe a data de desligamento.");
   if (admissao && desligamento && desligamento < admissao) {
-    erros.push("A data de desligamento nao pode ser anterior a admissao.");
+    erros.push("A data de desligamento não pode ser anterior à admissão.");
   }
-  if (!isFinite(saldoFGTS) || saldoFGTS < 0) erros.push("Informe um saldo de FGTS valido (zero ou maior).");
-  if (!["indenizado", "trabalhado"].includes(tipoAviso)) erros.push("Selecione o tipo de aviso previo.");
+  if (!isFinite(saldoFGTS) || saldoFGTS < 0) erros.push("Informe um saldo de FGTS válido (zero ou maior).");
+  if (!["indenizado", "trabalhado"].includes(tipoAviso)) erros.push("Selecione o tipo de aviso prévio.");
 
   return { ok: erros.length === 0, erros, dados: { salario, admissao, desligamento, tipoAviso, saldoFGTS, temFeriasVencidas, projecaoLigada } };
 }
@@ -596,19 +601,19 @@ function renderizar(resultado, input) {
   } else if (input.tipoAviso === "indenizado") {
     contexto.innerHTML =
       "<strong>Data efetiva considerada:</strong> " + dataEfetivaTxt +
-      " (projecao do aviso indenizado desligada nas configuracoes avancadas).";
+      " (projeção do aviso indenizado desligada nas configurações avançadas).";
   } else {
     contexto.innerHTML =
       "<strong>Data de desligamento:</strong> " + dataEfetivaTxt +
-      " (aviso previo trabalhado ja incluido no contrato).";
+      " (aviso prévio trabalhado já incluído no contrato).";
   }
 
   const avisoBox = document.getElementById("avisoTrabalhadoBox");
   if (resultado.avisoTrabalhadoInfo) {
     const i = resultado.avisoTrabalhadoInfo;
     document.getElementById("avisoTrabalhadoTexto").textContent =
-      i.dias + " dia(s) - de " + formatDateBR(i.inicio) + " ate " + formatDateBR(i.fim) +
-      " (informativo, ja integra o salario do periodo).";
+      i.dias + " dia(s) — de " + formatDateBR(i.inicio) + " até " + formatDateBR(i.fim) +
+      " (informativo, já integra o salário do período).";
     avisoBox.style.display = "";
   } else {
     avisoBox.style.display = "none";
