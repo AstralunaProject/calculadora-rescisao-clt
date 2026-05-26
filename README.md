@@ -2,7 +2,7 @@
 
 > Estime suas verbas rescisórias em demissão sem justa causa. Rápido, mobile-first, em pt-BR — e 100% offline.
 
-[**Abrir a calculadora →**](https://astralunaproject.github.io/Beta1/)
+[**Abrir a calculadora →**](https://astralunaproject.github.io/calculadora-rescisao-clt/)
 
 ---
 
@@ -25,7 +25,7 @@ Tudo roda no seu dispositivo. **Nenhum dado é enviado a servidor**, não há an
 
 ## Como usar
 
-Acesse a [versão publicada no GitHub Pages](https://astralunaproject.github.io/Beta1/) ou:
+Acesse a [versão publicada no GitHub Pages](https://astralunaproject.github.io/calculadora-rescisao-clt/) ou:
 
 1. Baixe/clone o repositório.
 2. Abra `index.html` direto no navegador (não precisa de servidor).
