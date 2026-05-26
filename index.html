@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Calculadora de rescisao trabalhista (CLT) - estimativa simplificada para demissao sem justa causa. Roda offline no seu navegador.">
+  <title>Calculadora de Rescisao CLT</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f4;
+      --surface: #ffffff;
+      --surface-2: #fafaf9;
+      --border: #e7e5e4;
+      --text: #1c1917;
+      --muted: #57534e;
+      --primary: #1d4ed8;
+      --primary-text: #ffffff;
+      --warn-bg: #fef3c7;
+      --warn-border: #f59e0b;
+      --warn-text: #78350f;
+      --total-bg: #dcfce7;
+      --total-border: #16a34a;
+      --total-text: #14532d;
+      --error: #b91c1c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1917;
+        --surface: #292524;
+        --surface-2: #1c1917;
+        --border: #44403c;
+        --text: #f5f5f4;
+        --muted: #a8a29e;
+        --primary: #60a5fa;
+        --primary-text: #0c111d;
+        --warn-bg: #422006;
+        --warn-border: #b45309;
+        --warn-text: #fde68a;
+        --total-bg: #052e16;
+        --total-border: #16a34a;
+        --total-text: #bbf7d0;
+        --error: #fca5a5;
+      }
+    }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+    body {
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    main { max-width: 640px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+    h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+    p { margin: 8px 0; }
+    .subtitle { color: var(--muted); margin: 0 0 16px; font-size: 0.95rem; }
+    .disclaimer {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: var(--warn-text);
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin: 12px 0 20px;
+    }
+    form { display: flex; flex-direction: column; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-weight: 600; font-size: 0.95rem; }
+    .field .hint { color: var(--muted); font-size: 0.8rem; }
+    .field input[type="number"],
+    .field input[type="date"],
+    .field select {
+      width: 100%;
+      padding: 12px 12px;
+      font-size: 1rem;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 44px;
+    }
+    .field input:focus, .field select:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .check input[type="checkbox"] { width: 20px; height: 20px; }
+    .check label { font-weight: 500; flex: 1; }
+    details {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 10px 12px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before { content: "+ "; color: var(--muted); }
+    details[open] summary::before { content: "\2212 "; }
+    details > .check { margin-top: 10px; }
+    button[type="submit"] {
+      margin-top: 8px;
+      padding: 14px 16px;
+      background: var(--primary);
+      color: var(--primary-text);
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    button[type="submit"]:active { transform: translateY(1px); }
+    .error-box {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    .error-box.show { display: block; }
+    .results { margin-top: 24px; display: none; }
+    .results.show { display: block; }
+    .verbas {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .verbas li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .verbas li:first-child { border-top: none; }
+    .verbas .label { display: flex; flex-direction: column; }
+    .verbas .label small { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .verbas .value { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+    .info-line {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 8px 0;
+      font-size: 0.95rem;
+    }
+    .info-line strong { display: block; margin-bottom: 4px; }
+    .info-line small { color: var(--muted); display: block; margin-top: 4px; }
+    .total {
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: var(--total-bg);
+      border: 1px solid var(--total-border);
+      color: var(--total-text);
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .total .value { font-variant-numeric: tabular-nums; }
+    .footer {
+      margin: 32px 0 16px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calculadora de Rescisao CLT</h1>
+  <p class="subtitle">Demissao sem justa causa &mdash; estimativa simplificada.</p>
+
+  <div class="disclaimer" role="note">
+    <strong>Aviso.</strong> Esta e uma estimativa simplificada. Nao considera justa causa, pedido de demissao,
+    rescisao por acordo, descontos de INSS/IRRF, adicionais (insalubridade, periculosidade, noturno),
+    horas extras, comissoes, medias variaveis nem outras parcelas. Nao substitui calculo oficial nem orientacao juridica.
+  </div>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label for="salario">Salario mensal bruto (R$)</label>
+      <input id="salario" name="salario" type="number" inputmode="decimal" min="0" step="0.01" required>
+      <span class="hint">Salario fixo, sem adicionais nem medias variaveis.</span>
+    </div>
+
+    <div class="field">
+      <label for="admissao">Data de admissao</label>
+      <input id="admissao" name="admissao" type="date" required>
+    </div>
+
+    <div class="field">
+      <label for="desligamento">Data de desligamento (ultimo dia trabalhado)</label>
+      <input id="desligamento" name="desligamento" type="date" required>
+    </div>
+
+    <div class="field">
+      <label for="tipoAviso">Tipo de aviso previo</label>
+      <select id="tipoAviso" name="tipoAviso" required>
+        <option value="indenizado">Indenizado</option>
+        <option value="trabalhado">Trabalhado</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="fgts">Saldo total de FGTS informado (R$)</label>
+      <input id="fgts" name="fgts" type="number" inputmode="decimal" min="0" step="0.01" required>
+      <span class="hint">Consulte no app FGTS ou no extrato. Nao recalculamos os depositos.</span>
+    </div>
+
+    <div class="check">
+      <input id="feriasVencidas" name="feriasVencidas" type="checkbox">
+      <label for="feriasVencidas">Tenho ferias vencidas (1 periodo aquisitivo completo nao gozado)</label>
+    </div>
+
+    <details>
+      <summary>Configuracoes avancadas</summary>
+      <div class="check">
+        <input id="projecao" name="projecao" type="checkbox" checked>
+        <label for="projecao">
+          Projetar o aviso indenizado no tempo de servico
+          <span class="hint" style="display:block;font-weight:400;">
+            Ligado por padrao (art. 487, &sect;1&ordm;, CLT + OJ 82 da SDI-1 do TST).
+            Desligue apenas se tiver motivo especifico.
+          </span>
+        </label>
+      </div>
+    </details>
+
+    <button type="submit">Calcular</button>
+    <div id="error" class="error-box" role="alert"></div>
+  </form>
+
+  <section id="results" class="results" aria-live="polite">
+    <h2>Resultado</h2>
+    <div id="contexto" class="info-line"></div>
+
+    <ul id="verbas" class="verbas"></ul>
+
+    <div id="avisoTrabalhadoBox" class="info-line" style="display:none;">
+      <strong id="avisoTrabalhadoTitulo">Aviso previo trabalhado</strong>
+      <span id="avisoTrabalhadoTexto"></span>
+      <small>
+        Durante o aviso trabalhado, o art. 488 da CLT preve reducao de 2 horas/dia ou 7 dias corridos
+        sem prejuizo do salario. Esta calculadora nao simula essa escolha pratica.
+      </small>
+    </div>
+
+    <div id="alertaFeriasDobro" class="disclaimer" style="display:none;">
+      <strong>Atencao.</strong> Ferias vencidas concedidas fora do prazo legal (art. 137 da CLT) podem gerar
+      direito a pagamento em dobro, o que nao e calculado automaticamente por esta ferramenta.
+      Verifique com um profissional especializado.
+    </div>
+
+    <div class="total">
+      <span>Total estimado</span>
+      <span id="total" class="value">R$ 0,00</span>
+    </div>
+
+    <p class="subtitle" style="margin-top:16px;">
+      Resultado aproximado. Nao substitui calculo oficial. Consulte um profissional especializado
+      em caso de duvida sobre seus direitos.
+    </p>
+  </section>
+
+  <p class="footer">
+    Privacidade: todos os calculos acontecem no seu navegador. Nenhum dado e enviado a servidor.
+  </p>
+</main>
+
+<script>
+"use strict";
+
+/* ========================================================================
+ * Calculadora de rescisao trabalhista (CLT) - V1
+ *
+ * Escopo coberto: demissao sem justa causa, com aviso indenizado ou trabalhado.
+ * Todos os calculos rodam no proprio navegador. Nada e enviado a servidor.
+ *
+ * Bases legais citadas nos comentarios de cada funcao:
+ *   - CLT (Decreto-Lei 5.452/1943)
+ *   - Constituicao Federal, art. 7, XVII
+ *   - Lei 4.090/1962 (13o salario)
+ *   - Lei 8.036/1990 (FGTS)
+ *   - Lei 12.506/2011 (aviso previo proporcional)
+ *   - OJ 82 da SDI-1 do TST (data de saida no aviso indenizado)
+ *   - Sumula 261 do TST (ferias proporcionais)
+ * ======================================================================== */
+
+// ---------- helpers de data ----------
+
+// Faz parse de string "YYYY-MM-DD" como data local (evita problemas de fuso UTC).
+function parseDateLocal(str) {
+  if (!str) return null;
+  const parts = str.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function addDays(date, days) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function formatDateBR(date) {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  return dd + "/" + mm + "/" + date.getFullYear();
+}
+
+function formatBRL(value) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Anos completos entre duas datas (data1 <= data2). Usa mes/dia (estilo "aniversario").
+function anosCompletos(inicio, fim) {
+  let anos = fim.getFullYear() - inicio.getFullYear();
+  const aindaNaoFezAniversario =
+    fim.getMonth() < inicio.getMonth() ||
+    (fim.getMonth() === inicio.getMonth() && fim.getDate() < inicio.getDate());
+  if (aindaNaoFezAniversario) anos--;
+  return Math.max(0, anos);
+}
+
+// Quantos dias de [inicio, fim] (intervalo fechado) caem no mes (year, month).
+function diasNoMes(year, month, inicio, fim) {
+  const ultimoDia = new Date(year, month + 1, 0).getDate();
+  const inicioMes = new Date(year, month, 1);
+  const fimMes = new Date(year, month, ultimoDia);
+  const ini = inicio > inicioMes ? inicio : inicioMes;
+  const f = fim < fimMes ? fim : fimMes;
+  if (ini > f) return 0;
+  // diferenca em dias + 1 (inclusivo).
+  const ms = f - ini;
+  return Math.round(ms / 86400000) + 1;
+}
+
+// Conta meses entre [inicio, fim] em que houve pelo menos 15 dias trabalhados.
+// Base: Lei 4.090/62, art. 1, §2 (regra dos 15 dias para o 13o salario).
+// A mesma logica e aplicada como criterio pratico para os avos de ferias proporcionais.
+function contaMesesComQuinzeDias(inicio, fim) {
+  if (fim < inicio) return 0;
+  let count = 0;
+  let cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+  const fimMes = new Date(fim.getFullYear(), fim.getMonth(), 1);
+  while (cursor <= fimMes) {
+    const dias = diasNoMes(cursor.getFullYear(), cursor.getMonth(), inicio, fim);
+    if (dias >= 15) count++;
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  return count;
+}
+
+// Inicio do periodo aquisitivo atual de ferias (ultimo "aniversario" de admissao <= dataEfetiva).
+// Se ainda nao completou nem o primeiro ano, retorna a propria admissao.
+function inicioPeriodoAquisitivo(admissao, dataEfetiva) {
+  const anos = anosCompletos(admissao, dataEfetiva);
+  if (anos === 0) return new Date(admissao);
+  return new Date(admissao.getFullYear() + anos, admissao.getMonth(), admissao.getDate());
+}
+
+// ---------- regras de calculo de cada verba ----------
+
+// Aviso previo - Lei 12.506/2011:
+//   30 dias base + 3 dias por ano completo de servico,
+//   limitado a 90 dias totais (atingido com 20 anos completos).
+function calcAvisoPrevioDias(admissao, dataDesligamento) {
+  const anos = anosCompletos(admissao, dataDesligamento);
+  const dias = 30 + 3 * anos;
+  return Math.min(dias, 90);
+}
+
+// Aplica a projecao do aviso indenizado no tempo de servico.
+// Base: CLT, art. 487, §1 (o aviso indenizado integra o tempo de servico
+// para todos os efeitos legais) e OJ 82 da SDI-1 do TST (anotar como data de
+// saida o termino do aviso, ainda que indenizado).
+// Quando ligada, a projecao pode gerar 1 avo extra de 13o e/ou de ferias proporcionais.
+function calcularDataEfetiva(dataDesligamento, tipoAviso, diasAviso, projecaoLigada) {
+  if (tipoAviso === "indenizado" && projecaoLigada) {
+    return addDays(dataDesligamento, diasAviso);
+  }
+  // No aviso trabalhado, o periodo do aviso ja esta dentro do contrato:
+  // a data de desligamento informada e o ultimo dia trabalhado, que ja inclui o aviso.
+  return new Date(dataDesligamento.getFullYear(), dataDesligamento.getMonth(), dataDesligamento.getDate());
+}
+
+// Saldo de salario: dias trabalhados no mes do desligamento.
+// Convencao: salario / 30 * dias. Usamos a data de desligamento informada (sem projecao),
+// porque o aviso indenizado e pago como verba separada e nao como salario do mes seguinte.
+function calcSaldoSalario(salario, admissao, dataDesligamento) {
+  const ano = dataDesligamento.getFullYear();
+  const mes = dataDesligamento.getMonth();
+  let inicioMes = new Date(ano, mes, 1);
+  // Caso raro: admissao no mesmo mes do desligamento.
+  if (admissao > inicioMes) inicioMes = new Date(admissao);
+  const dias = dataDesligamento.getDate() - inicioMes.getDate() + 1;
+  return { dias, valor: (salario / 30) * dias };
+}
+
+// Aviso previo INDENIZADO em R$: salario/30 * dias de aviso.
+// Calculado apenas quando o tipo escolhido for "indenizado".
+function calcAvisoIndenizadoValor(salario, diasAviso) {
+  return (salario / 30) * diasAviso;
+}
+
+// 13o salario proporcional - Lei 4.090/62.
+// Avos = numero de meses no ano civil corrente com >= 15 dias trabalhados.
+// Se a projecao do aviso indenizado estiver ligada, a contagem usa a data efetiva projetada.
+function calc13Proporcional(salario, admissao, dataEfetiva) {
+  const inicioAno = new Date(dataEfetiva.getFullYear(), 0, 1);
+  const inicio = admissao > inicioAno ? admissao : inicioAno;
+  const avos = Math.min(12, contaMesesComQuinzeDias(inicio, dataEfetiva));
+  return { avos, valor: (salario / 12) * avos };
+}
+
+// Ferias vencidas (1 periodo, marcado manualmente pelo usuario).
+// Valor: salario + 1/3 constitucional (art. 7, XVII, CF + art. 130 CLT).
+// A V1 NAO detecta automaticamente o pagamento em dobro do art. 137 CLT;
+// um alerta textual e exibido para o usuario.
+function calcFeriasVencidas(salario) {
+  return salario * (4 / 3);
+}
+
+// Ferias proporcionais - Sumula 261 do TST (direito garantido inclusive em pedido de demissao
+// antes de 12 meses). Avos: meses do periodo aquisitivo em curso com >= 15 dias trabalhados,
+// criterio pratico espelhado da Lei 4.090/62.
+function calcFeriasProporcionais(salario, admissao, dataEfetiva) {
+  const inicio = inicioPeriodoAquisitivo(admissao, dataEfetiva);
+  const avos = Math.min(12, contaMesesComQuinzeDias(inicio, dataEfetiva));
+  return { avos, valor: (salario / 12) * avos * (4 / 3) };
+}
+
+// Multa de 40% sobre o saldo do FGTS - Lei 8.036/1990, art. 18, §1.
+// A calculadora nao reconstroi os depositos: usa o saldo informado pelo usuario.
+function calcMultaFGTS(saldoFGTS) {
+  return saldoFGTS * 0.4;
+}
+
+// ---------- orquestracao ----------
+
+function calcularRescisao(input) {
+  const { salario, admissao, desligamento, tipoAviso, saldoFGTS, temFeriasVencidas, projecaoLigada } = input;
+
+  const diasAviso = calcAvisoPrevioDias(admissao, desligamento);
+  const dataEfetiva = calcularDataEfetiva(desligamento, tipoAviso, diasAviso, projecaoLigada);
+
+  const saldo = calcSaldoSalario(salario, admissao, desligamento);
+  const decimoTerceiro = calc13Proporcional(salario, admissao, dataEfetiva);
+  const feriasProp = calcFeriasProporcionais(salario, admissao, dataEfetiva);
+  const feriasVenc = temFeriasVencidas ? calcFeriasVencidas(salario) : 0;
+  const multaFGTS = calcMultaFGTS(saldoFGTS);
+
+  const verbas = [];
+  verbas.push({
+    titulo: "Saldo de salario",
+    detalhe: saldo.dias + " dia(s) trabalhado(s) no mes",
+    valor: saldo.valor,
+  });
+
+  if (tipoAviso === "indenizado") {
+    verbas.push({
+      titulo: "Aviso previo indenizado",
+      detalhe: diasAviso + " dia(s) (Lei 12.506/2011)" + (projecaoLigada ? " - projetado no tempo de servico" : ""),
+      valor: calcAvisoIndenizadoValor(salario, diasAviso),
+    });
+  }
+
+  verbas.push({
+    titulo: "13o salario proporcional",
+    detalhe: decimoTerceiro.avos + "/12 (regra dos 15 dias - Lei 4.090/62)",
+    valor: decimoTerceiro.valor,
+  });
+
+  if (temFeriasVencidas) {
+    verbas.push({
+      titulo: "Ferias vencidas + 1/3",
+      detalhe: "1 periodo aquisitivo completo",
+      valor: feriasVenc,
+    });
+  }
+
+  verbas.push({
+    titulo: "Ferias proporcionais + 1/3",
+    detalhe: feriasProp.avos + "/12 (criterio dos 15 dias)",
+    valor: feriasProp.valor,
+  });
+
+  verbas.push({
+    titulo: "Multa de 40% do FGTS",
+    detalhe: "sobre saldo informado " + formatBRL(saldoFGTS),
+    valor: multaFGTS,
+  });
+
+  const total = verbas.reduce((acc, v) => acc + v.valor, 0);
+
+  // Aviso previo trabalhado e apenas informativo, NAO entra no total.
+  // CLT, art. 488 (reducao de 2h/dia ou 7 dias corridos) nao e simulada nesta V1.
+  let avisoTrabalhadoInfo = null;
+  if (tipoAviso === "trabalhado") {
+    const inicioAviso = addDays(desligamento, -(diasAviso - 1));
+    avisoTrabalhadoInfo = {
+      dias: diasAviso,
+      inicio: inicioAviso,
+      fim: desligamento,
+    };
+  }
+
+  return {
+    verbas,
+    total,
+    diasAviso,
+    dataEfetiva,
+    avisoTrabalhadoInfo,
+    temFeriasVencidas,
+  };
+}
+
+// ---------- validacao e leitura do formulario ----------
+
+function lerFormulario() {
+  const salario = parseFloat(document.getElementById("salario").value);
+  const admissao = parseDateLocal(document.getElementById("admissao").value);
+  const desligamento = parseDateLocal(document.getElementById("desligamento").value);
+  const tipoAviso = document.getElementById("tipoAviso").value;
+  const saldoFGTS = parseFloat(document.getElementById("fgts").value);
+  const temFeriasVencidas = document.getElementById("feriasVencidas").checked;
+  const projecaoLigada = document.getElementById("projecao").checked;
+
+  const erros = [];
+  if (!isFinite(salario) || salario <= 0) erros.push("Informe um salario maior que zero.");
+  if (!admissao) erros.push("Informe a data de admissao.");
+  if (!desligamento) erros.push("Informe a data de desligamento.");
+  if (admissao && desligamento && desligamento < admissao) {
+    erros.push("A data de desligamento nao pode ser anterior a admissao.");
+  }
+  if (!isFinite(saldoFGTS) || saldoFGTS < 0) erros.push("Informe um saldo de FGTS valido (zero ou maior).");
+  if (!["indenizado", "trabalhado"].includes(tipoAviso)) erros.push("Selecione o tipo de aviso previo.");
+
+  return { ok: erros.length === 0, erros, dados: { salario, admissao, desligamento, tipoAviso, saldoFGTS, temFeriasVencidas, projecaoLigada } };
+}
+
+// ---------- renderizacao ----------
+
+function renderizar(resultado, input) {
+  const verbasUl = document.getElementById("verbas");
+  verbasUl.innerHTML = "";
+  resultado.verbas.forEach((v) => {
+    const li = document.createElement("li");
+    const labelDiv = document.createElement("div");
+    labelDiv.className = "label";
+    const titulo = document.createElement("span");
+    titulo.textContent = v.titulo;
+    const detalhe = document.createElement("small");
+    detalhe.textContent = v.detalhe;
+    labelDiv.appendChild(titulo);
+    labelDiv.appendChild(detalhe);
+    const valor = document.createElement("span");
+    valor.className = "value";
+    valor.textContent = formatBRL(v.valor);
+    li.appendChild(labelDiv);
+    li.appendChild(valor);
+    verbasUl.appendChild(li);
+  });
+
+  // Contexto: data efetiva considerada nos calculos.
+  const contexto = document.getElementById("contexto");
+  const dataEfetivaTxt = formatDateBR(resultado.dataEfetiva);
+  const dataDeslTxt = formatDateBR(input.desligamento);
+  if (input.tipoAviso === "indenizado" && input.projecaoLigada) {
+    contexto.innerHTML =
+      "<strong>Data efetiva considerada:</strong> " + dataEfetivaTxt +
+      " (desligamento " + dataDeslTxt + " + " + resultado.diasAviso + " dias de aviso projetados).";
+  } else if (input.tipoAviso === "indenizado") {
+    contexto.innerHTML =
+      "<strong>Data efetiva considerada:</strong> " + dataEfetivaTxt +
+      " (projecao do aviso indenizado desligada nas configuracoes avancadas).";
+  } else {
+    contexto.innerHTML =
+      "<strong>Data de desligamento:</strong> " + dataEfetivaTxt +
+      " (aviso previo trabalhado ja incluido no contrato).";
+  }
+
+  const avisoBox = document.getElementById("avisoTrabalhadoBox");
+  if (resultado.avisoTrabalhadoInfo) {
+    const i = resultado.avisoTrabalhadoInfo;
+    document.getElementById("avisoTrabalhadoTexto").textContent =
+      i.dias + " dia(s) - de " + formatDateBR(i.inicio) + " ate " + formatDateBR(i.fim) +
+      " (informativo, ja integra o salario do periodo).";
+    avisoBox.style.display = "";
+  } else {
+    avisoBox.style.display = "none";
+  }
+
+  document.getElementById("alertaFeriasDobro").style.display = resultado.temFeriasVencidas ? "" : "none";
+  document.getElementById("total").textContent = formatBRL(resultado.total);
+  document.getElementById("results").classList.add("show");
+}
+
+function mostrarErros(erros) {
+  const box = document.getElementById("error");
+  box.innerHTML = "<strong>Verifique os campos:</strong><ul style='margin:6px 0 0 18px;padding:0;'>" +
+    erros.map((e) => "<li>" + e + "</li>").join("") + "</ul>";
+  box.classList.add("show");
+  document.getElementById("results").classList.remove("show");
+}
+
+function limparErros() {
+  const box = document.getElementById("error");
+  box.classList.remove("show");
+  box.innerHTML = "";
+}
+
+document.getElementById("form").addEventListener("submit", function (ev) {
+  ev.preventDefault();
+  limparErros();
+  const leitura = lerFormulario();
+  if (!leitura.ok) {
+    mostrarErros(leitura.erros);
+    return;
+  }
+  const resultado = calcularRescisao(leitura.dados);
+  renderizar(resultado, leitura.dados);
+  document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+</script>
+</body>
+</html>
