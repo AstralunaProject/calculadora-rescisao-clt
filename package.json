@@ -1,0 +1,36 @@
+{
+  "name": "calculadora-rescisao-clt",
+  "version": "2.0.0",
+  "description": "Calculadora de rescisão trabalhista (CLT) que roda inteiramente no navegador.",
+  "private": true,
+  "type": "module",
+  "author": "AstralunaProject",
+  "license": "MIT",
+  "homepage": "https://astralunaproject.github.io/calculadora-rescisao-clt/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AstralunaProject/calculadora-rescisao-clt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AstralunaProject/calculadora-rescisao-clt/issues"
+  },
+  "keywords": [
+    "clt",
+    "rescisao",
+    "trabalhista",
+    "calculadora",
+    "fgts"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "node --test \"test/*.test.js\"",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "typescript": "^7.0.2"
+  }
+}
