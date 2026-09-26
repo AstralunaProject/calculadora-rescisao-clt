@@ -153,6 +153,15 @@ export function anosCompletos(inicio, fim) {
 }
 
 /**
+ * O último dia trabalhado conta como dia de serviço: quem entrou em 15/03/2020 e saiu
+ * em 14/03/2025 completou 5 anos.
+ * @param {Date} admissao @param {Date} ultimoDia
+ */
+export function anosDeServico(admissao, ultimoDia) {
+  return anosCompletos(admissao, somarDias(ultimoDia, 1));
+}
+
+/**
  * 13º salário: cada mês civil com 15 dias ou mais de trabalho conta como 1/12
  * (Lei 4.090/62, art. 1º, §2º).
  * @param {Date} inicio @param {Date} fim
@@ -191,7 +200,7 @@ export function avosDeServico(inicio, fim) {
 export function diasDeAviso({ modalidade, admissao, desligamento }) {
   if (modalidade === "justa_causa") return 0;
   if (modalidade === "pedido_demissao") return 30;
-  return Math.min(90, 30 + 3 * anosCompletos(admissao, desligamento));
+  return Math.min(90, 30 + 3 * anosDeServico(admissao, desligamento));
 }
 
 /**
@@ -240,11 +249,12 @@ export function decimoTerceiroProporcional(salario, admissao, desligamento, efet
 
 /**
  * Se a projeção do aviso completar o período aquisitivo em curso, ele vira férias
- * integrais e os avos seguintes começam um novo período.
+ * integrais e os avos seguintes começam um novo período. Períodos completos até o
+ * último dia trabalhado entram como férias vencidas.
  * @param {number} salario @param {Date} admissao @param {Date} desligamento @param {Date} efetiva
  */
 export function feriasProporcionais(salario, admissao, desligamento, efetiva) {
-  const anos = anosCompletos(admissao, desligamento);
+  const anos = anosDeServico(admissao, desligamento);
   const inicioPeriodo = somarMeses(admissao, 12 * anos);
   const fimPeriodo = somarMeses(admissao, 12 * (anos + 1));
   const completouPeriodo = efetiva >= somarDias(fimPeriodo, -1);
@@ -276,8 +286,11 @@ function ehTipoAviso(valor) {
  */
 export function lerEntrada(campos) {
   const texto = (/** @type {string} */ nome) => (campos.get(nome) ?? "").trim();
-  const numero = (/** @type {string} */ nome, /** @type {number} */ vazio) =>
-    texto(nome) === "" ? vazio : Number(texto(nome));
+  const numero = (/** @type {string} */ nome, /** @type {number} */ vazio) => {
+    if (texto(nome) === "") return vazio;
+    const valor = Number(texto(nome));
+    return Number.isFinite(valor) ? valor : NaN;
+  };
 
   const modalidade = texto("m");
   const tipoAviso = texto("av");
@@ -295,7 +308,7 @@ export function lerEntrada(campos) {
   } else if (!ehTipoAviso(tipoAviso) || !regras.avisos.includes(tipoAviso)) {
     erros.push("Selecione o tipo de aviso prévio.");
   }
-  if (!Number.isFinite(salario) || salario <= 0) erros.push("Informe um salário maior que zero.");
+  if (!(salario > 0)) erros.push("Informe um salário maior que zero.");
   if (regras && regras.multaFGTS > 0 && !(saldoFGTS >= 0)) {
     erros.push("Informe um saldo de FGTS válido (zero ou maior).");
   }
@@ -306,7 +319,7 @@ export function lerEntrada(campos) {
   if (admissao && desligamento) {
     if (desligamento < admissao) {
       erros.push("A data de desligamento não pode ser anterior à admissão.");
-    } else if (feriasVencidas > anosCompletos(admissao, desligamento)) {
+    } else if (feriasVencidas > anosDeServico(admissao, desligamento)) {
       erros.push("Há mais períodos de férias vencidas do que anos completos de contrato.");
     }
   }
@@ -378,8 +391,7 @@ export function calcularRescisao(entrada) {
 
   if (regras.proporcionais) {
     const ferias = feriasProporcionais(salario, admissao, desligamento, efetiva);
-    const origem = projetado ? "completado pela projeção do aviso" : "completo no desligamento";
-    incluir(verbas, "Férias integrais + 1/3", `período aquisitivo ${origem}`, ferias.valorIntegral);
+    incluir(verbas, "Férias integrais + 1/3", "período aquisitivo completado pela projeção do aviso", ferias.valorIntegral);
     incluir(verbas, "Férias proporcionais + 1/3", `${ferias.avos}/12 (CLT, art. 146; Súmula 261 TST)`, ferias.valor);
   }
 
