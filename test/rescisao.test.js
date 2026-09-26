@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   anosCompletos,
+  anosDeServico,
   avosDeServico,
   calcularRescisao,
   decimoTerceiroProporcional,
@@ -48,6 +49,11 @@ describe("datas", () => {
   test("anos completos viram no aniversário da admissão", () => {
     assert.equal(anosCompletos(data("2020-03-15"), data("2025-03-14")), 4);
     assert.equal(anosCompletos(data("2020-03-15"), data("2025-03-15")), 5);
+  });
+
+  test("anos de serviço contam o último dia trabalhado", () => {
+    assert.equal(anosDeServico(data("2020-03-15"), data("2025-03-13")), 4);
+    assert.equal(anosDeServico(data("2020-03-15"), data("2025-03-14")), 5);
   });
 });
 
@@ -162,6 +168,17 @@ describe("calcularRescisao", () => {
     assert.equal(r.total, 13500);
   });
 
+  test("sair na véspera ou no aniversário da admissão não muda aviso nem férias", () => {
+    const base = { m: "sem_justa_causa", av: "trabalhado", s: "3000", a: "2020-03-15", f: "0", fv: "1" };
+    const vespera = calcularRescisao(entrada({ ...base, d: "2025-03-14" }));
+    const aniversario = calcularRescisao(entrada({ ...base, d: "2025-03-15" }));
+    assert.equal(vespera.diasAviso, 45);
+    assert.equal(aniversario.diasAviso, 45);
+    assert.equal(valorDe(vespera, "Férias integrais + 1/3"), undefined);
+    assert.equal(valorDe(vespera, "Férias vencidas + 1/3"), 4000);
+    assert.equal(valorDe(aniversario, "Férias vencidas + 1/3"), 4000);
+  });
+
   test("adiantamento de 13º é descontado", () => {
     const r = calcularRescisao(entrada({ ...contrato, m: "sem_justa_causa", av: "indenizado", ad: "1000" }));
     assert.equal(r.total, 12816.67);
@@ -190,6 +207,12 @@ describe("lerEntrada", () => {
   test("recusa mais férias vencidas do que anos de contrato", () => {
     const leitura = lerEntrada(new URLSearchParams({ m: "pedido_demissao", av: "trabalhado", s: "1000", a: "2024-06-01", d: "2025-03-01", fv: "1" }));
     assert.equal(leitura.ok, false);
+  });
+
+  test("recusa valores infinitos vindos do link", () => {
+    const base = { m: "sem_justa_causa", av: "indenizado", s: "1000", a: "2020-01-01", d: "2025-01-01", f: "0" };
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, f: "Infinity" })).ok, false);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, ad: "Infinity" })).ok, false);
   });
 
   test("FGTS é opcional quando a modalidade não tem multa", () => {
