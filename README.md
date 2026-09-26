@@ -1,96 +1,101 @@
 # Calculadora de Rescisão CLT
 
-> Estime suas verbas rescisórias em demissão sem justa causa. Rápido, mobile-first, em pt-BR — e 100% offline.
+> Estime suas verbas rescisórias em qualquer modalidade de desligamento. Rápido, mobile-first, em pt-BR e sem enviar nenhum dado a servidor.
 
 [**Abrir a calculadora →**](https://astralunaproject.github.io/calculadora-rescisao-clt/)
 
 ---
 
-## O que é
+## O que calcula
 
-Web app estático (um único `index.html` com HTML, CSS e JavaScript inline, sem framework, sem backend) que calcula no próprio navegador as verbas devidas em **rescisão sem justa causa** pela CLT brasileira:
+| Verba | Sem justa causa | Rescisão indireta | Acordo (484-A) | Pedido de demissão | Justa causa |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Saldo de salário | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Aviso prévio indenizado | ✓ | ✓ | metade | — | — |
+| 13º proporcional | ✓ | ✓ | ✓ | ✓ | — |
+| Férias vencidas + 1/3 (e em dobro) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Férias proporcionais + 1/3 | ✓ | ✓ | ✓ | ✓ | — |
+| Multa do FGTS | 40% | 40% | 20% | — | — |
+| Desconto do aviso não cumprido | — | — | — | ✓ | — |
 
-- Saldo de salário
-- Aviso prévio indenizado (com projeção no tempo de serviço, conforme art. 487 §1º CLT + OJ 82 SDI-1 TST)
-- 13º salário proporcional (Lei 4.090/62, regra dos 15 dias)
-- Férias vencidas + 1/3 constitucional (opcional)
-- Férias proporcionais + 1/3 (Súmula 261 TST)
-- Multa de 40% sobre o saldo do FGTS (Lei 8.036/90, art. 18 §1º)
+Detalhes que a calculadora trata:
 
-O **aviso prévio trabalhado** aparece apenas como linha informativa, não soma ao total — durante ele o salário continua sendo pago normalmente.
+- **Projeção do aviso indenizado** no tempo de serviço (art. 487 §1º CLT + OJ 82 SDI-1 TST), com os avos de 13º separados por ano quando a projeção entra no ano seguinte e férias integrais quando ela completa o período aquisitivo.
+- **Avos de férias contados pelo período aquisitivo**, não pelo mês civil (art. 146, parágrafo único), e avos de 13º pelo mês civil com a regra dos 15 dias (Lei 4.090/62).
+- **Saldo de salário no mês comercial**: mês trabalhado inteiro vale 30 dias, inclusive em fevereiro.
+- **Dois períodos de férias vencidas**: o mais antigo sai em dobro, porque o prazo concessivo dele já acabou (art. 137).
+- **Adiantamento de 13º** já recebido é descontado; descontos nunca passam do valor das verbas.
+- Observações sobre saque do FGTS e seguro-desemprego de acordo com a modalidade.
+
+## Recursos
+
+- **Link compartilhável**: os dados ficam depois do `#` da URL, parte que o navegador nunca envia ao servidor.
+- **Copiar resumo** em texto, pronto para colar em mensagem ou e-mail.
+- **Imprimir / PDF** com layout próprio para impressão.
+- **Funciona offline** depois da primeira visita (service worker) e pode ser instalado como app.
+- Tema claro/escuro automático, layout responsivo, `aria-live` no resultado e campos com rótulos associados.
 
 ## Privacidade
 
-Tudo roda no seu dispositivo. **Nenhum dado é enviado a servidor**, não há analytics, não há chamadas de rede. Pode usar offline depois de carregar a página uma vez.
-
-## Como usar
-
-Acesse a [versão publicada no GitHub Pages](https://astralunaproject.github.io/calculadora-rescisao-clt/) ou:
-
-1. Baixe/clone o repositório.
-2. Abra `index.html` direto no navegador (não precisa de servidor).
-
-Preencha salário, data de admissão, data de desligamento, tipo de aviso prévio, saldo de FGTS (consulte no app FGTS) e marque "tenho férias vencidas" se for o caso. Clique em **Calcular** para ver as verbas discriminadas e o total estimado.
-
-### Configurações avançadas
-
-Por padrão, o aviso prévio indenizado é **projetado no tempo de serviço** (art. 487 §1º CLT + OJ 82 SDI-1 TST), o que pode gerar avos extras de 13º e férias proporcionais. É possível desligar a projeção em "Configurações avançadas" — use apenas se tiver motivo específico.
+Tudo roda no seu dispositivo. Não há backend, analytics nem chamadas de rede além do carregamento dos arquivos da própria página.
 
 ## Aviso importante
 
-Esta é uma **estimativa simplificada**, criada como ferramenta de referência rápida.
+É uma **estimativa simplificada**. Não considera:
 
-**Não considera:**
-- Justa causa, pedido de demissão, rescisão por acordo (Lei 13.467/2017), término de contrato a prazo, rescisão indireta
 - Descontos de INSS e IRRF
-- Adicionais (insalubridade, periculosidade, noturno)
-- Horas extras, comissões, médias variáveis
-- Detecção automática de férias vencidas em dobro (art. 137 CLT)
-- Cálculo da redução do aviso trabalhado (art. 488 CLT: 2h/dia ou 7 dias)
+- Adicionais (insalubridade, periculosidade, noturno), horas extras, comissões e médias variáveis
+- Contratos por prazo determinado (arts. 479 e 480 CLT) e contrato de experiência
+- Redução da jornada no aviso trabalhado (art. 488 CLT)
+- Estabilidades provisórias e verbas previstas em convenção coletiva
 
-**Não substitui** cálculo oficial pelo empregador nem orientação jurídica profissional. Em caso de dúvida sobre seus direitos, consulte um advogado ou o sindicato da sua categoria.
+**Não substitui** o cálculo oficial do empregador nem orientação jurídica. Em caso de dúvida, procure um advogado ou o sindicato da sua categoria.
 
-## Bases legais aplicadas
+## Bases legais
 
 | Regra | Norma |
 |---|---|
-| Aviso prévio proporcional (30 + 3 dias/ano, cap 90) | Lei 12.506/2011 |
-| Projeção do aviso indenizado no tempo de serviço | CLT, art. 487 §1º; OJ 82 da SDI-1 do TST |
-| Aviso trabalhado (redução de 2h/dia ou 7 dias) — apenas informado | CLT, art. 488 |
-| 13º salário proporcional e regra dos 15 dias | Lei 4.090/62, art. 1º §2º |
-| Férias proporcionais (direito garantido) | Súmula 261 do TST |
-| Férias + 1/3 constitucional | CF/88, art. 7º, XVII; CLT, art. 130 e 142 |
-| Multa de 40% sobre FGTS | Lei 8.036/90, art. 18 §1º |
-| Férias vencidas em dobro (apenas alerta textual) | CLT, art. 137; STF, inconstitucionalidade da Súmula 450 TST |
+| Aviso prévio proporcional (30 + 3 dias/ano, até 90) | Lei 12.506/2011 |
+| Proporcionalidade só a favor do empregado (pedido de demissão = 30 dias) | Jurisprudência do TST |
+| Projeção do aviso indenizado | CLT, art. 487 §1º; OJ 82 da SDI-1 do TST |
+| Desconto do aviso não cumprido pelo empregado | CLT, art. 487 §2º |
+| Rescisão por acordo | CLT, art. 484-A |
+| Rescisão indireta | CLT, art. 483 |
+| Justa causa | CLT, art. 482; Súmula 171 do TST |
+| 13º proporcional e regra dos 15 dias | Lei 4.090/62, arts. 1º §2º e 3º |
+| Férias proporcionais | CLT, art. 146; Súmula 261 do TST |
+| Férias + 1/3 constitucional | CF/88, art. 7º, XVII; CLT, arts. 130 e 142 |
+| Férias em dobro | CLT, art. 137 |
+| Multa do FGTS | Lei 8.036/90, art. 18 §1º |
 
-Cada função no `index.html` cita a base legal correspondente nos comentários.
+## Desenvolvimento
 
-## Tecnologia
+O site é estático: `index.html`, `style.css` e módulos ES em `src/`, sem etapa de build. As regras de cálculo ficam isoladas em `src/rescisao.js` e a interface em `src/app.js`. Os tipos são escritos em JSDoc e verificados pelo TypeScript em modo `strict`.
 
-- HTML5 + CSS3 + JavaScript ES6 baunilha, tudo inline em um único arquivo
-- Sem dependências, sem build, sem framework
-- Suporta light/dark mode automaticamente (via `prefers-color-scheme`)
-- Layout responsivo (otimizado para celulares)
-- Acessibilidade: labels associados, `aria-live` no bloco de resultado, contraste adequado
+```sh
+npm install
+npm run check      # typecheck + testes
+```
+
+Para abrir localmente, sirva a pasta por HTTP (módulos ES não carregam via `file://`):
+
+```sh
+python3 -m http.server 8000
+# http://localhost:8000
+```
 
 ## Deploy (GitHub Pages)
 
-1. **Settings → Pages** no repositório.
-2. **Source:** `Deploy from a branch`.
-3. **Branch:** `main` · **Folder:** `/ (root)` · **Save**.
-4. Após ~1 min a URL fica disponível em `https://<usuario>.github.io/<repo>/`.
-
-O repositório precisa ser **público** (ou ter GitHub Pro) para servir páginas pelo Pages.
+**Settings → Pages → Deploy from a branch**, branch `main`, pasta `/ (root)`. A página fica em `https://<usuario>.github.io/<repo>/`.
 
 ## Roadmap
 
-- [ ] Adicionar cálculo de outras modalidades (pedido de demissão, rescisão por acordo, justa causa)
-- [ ] Compartilhar resultado por URL (sem enviar nada a servidor — só param na própria URL)
-- [ ] Exportar memória de cálculo como PDF
-- [ ] Internacionalização
+- [ ] Contrato por prazo determinado e de experiência
+- [ ] Descontos de INSS e IRRF com tabelas anuais
+- [ ] Médias de horas extras e comissões
 
 Sugestões e PRs são bem-vindos.
 
 ## Licença
 
-A definir.
+[MIT](LICENSE) © AstralunaProject
