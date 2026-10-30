@@ -66,12 +66,16 @@ function camposDoFormulario() {
 function aplicarCampos(campos) {
   const m = campos.get("m");
   if (m && Object.hasOwn(MODALIDADES, m)) modalidade.value = m;
+  else modalidade.selectedIndex = 0;
   atualizarCampos();
+  // Campos ausentes no link voltam ao padrão para não herdar valores de um link anterior.
   for (const campo of form.elements) {
     if (!(campo instanceof HTMLInputElement || campo instanceof HTMLSelectElement) || campo === modalidade) continue;
     const valor = campos.get(campo.name);
     if (campo instanceof HTMLInputElement && campo.type === "checkbox") campo.checked = valor === "on";
     else if (valor !== null) campo.value = valor;
+    else if (campo instanceof HTMLSelectElement) campo.selectedIndex = 0;
+    else campo.value = campo.defaultValue;
   }
   atualizarCampos();
 }
