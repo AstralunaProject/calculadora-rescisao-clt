@@ -15,6 +15,7 @@
 | 13º proporcional | ✓ | ✓ | ✓ | ✓ | — |
 | Férias vencidas + 1/3 (e em dobro) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Férias proporcionais + 1/3 | ✓ | ✓ | ✓ | ✓ | — |
+| FGTS sobre verbas rescisórias (8%) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Multa do FGTS | 40% | 40% | 20% | — | — |
 | Desconto do aviso não cumprido | — | — | — | ✓ | — |
 
@@ -23,6 +24,8 @@ Detalhes que a calculadora trata:
 - **Projeção do aviso indenizado** no tempo de serviço (art. 487 §1º CLT + OJ 82 SDI-1 TST), com os avos de 13º separados por ano quando a projeção entra no ano seguinte e férias integrais quando ela completa o período aquisitivo.
 - **Avos de férias contados pelo período aquisitivo**, não pelo mês civil (art. 146, parágrafo único), e avos de 13º pelo mês civil com a regra dos 15 dias (Lei 4.090/62).
 - **Saldo de salário no mês comercial**: mês trabalhado inteiro vale 30 dias, inclusive em fevereiro.
+- **Resultado em duas partes**: o valor a receber na rescisão, bruto (sem descontos de INSS/IRRF), e o que é depositado na conta do FGTS, que não é pago no termo de rescisão.
+- **FGTS rescisório**: 8% sobre saldo de salário, aviso indenizado (Súmula 305 TST) e 13º; férias indenizadas não entram (OJ 195 SDI-1 TST). Esse depósito soma ao saldo informado na base da multa.
 - **Dois períodos de férias vencidas**: o mais antigo sai em dobro, porque o prazo concessivo dele já acabou (art. 137).
 - **Adiantamento de 13º** já recebido é descontado; descontos nunca passam do valor das verbas.
 - Observações sobre saque do FGTS e seguro-desemprego de acordo com a modalidade.
@@ -66,6 +69,7 @@ Tudo roda no seu dispositivo. Não há backend, analytics nem chamadas de rede a
 | Férias proporcionais | CLT, art. 146; Súmula 261 do TST |
 | Férias + 1/3 constitucional | CF/88, art. 7º, XVII; CLT, arts. 130 e 142 |
 | Férias em dobro | CLT, art. 137 |
+| FGTS sobre aviso indenizado e 13º; férias indenizadas fora | Lei 8.036/90, art. 15; Súmula 305 e OJ 195 da SDI-1 do TST |
 | Multa do FGTS | Lei 8.036/90, art. 18 §1º |
 
 ## Desenvolvimento

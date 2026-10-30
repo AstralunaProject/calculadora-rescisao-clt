@@ -32,7 +32,7 @@ function entrada(campos) {
 
 /** @param {import("../src/rescisao.js").Resultado} resultado @param {string} titulo */
 function valorDe(resultado, titulo) {
-  return resultado.verbas.find((v) => v.titulo === titulo)?.valor;
+  return [...resultado.verbas, ...resultado.fgts].find((v) => v.titulo === titulo)?.valor;
 }
 
 describe("datas", () => {
@@ -139,8 +139,28 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(r, "Aviso prévio indenizado"), 3900);
     assert.equal(valorDe(r, "13º salário proporcional"), 2250);
     assert.equal(valorDe(r, "Férias proporcionais + 1/3"), 1666.67);
-    assert.equal(valorDe(r, "Multa de 40% do FGTS"), 4000);
-    assert.equal(r.total, 13816.67);
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 652);
+    assert.equal(valorDe(r, "Multa de 40% do FGTS"), 4260.8);
+    assert.equal(r.total, 9816.67);
+    assert.equal(r.totalFGTS, 4912.8);
+  });
+
+  test("multa e depósito do FGTS ficam fora do valor a receber", () => {
+    const r = calcularRescisao(entrada({ ...contrato, m: "sem_justa_causa", av: "indenizado" }));
+    assert.equal(r.verbas.some((v) => v.titulo.includes("FGTS")), false);
+    assert.equal(r.bruto, 9816.67);
+  });
+
+  test("férias indenizadas não entram na base do FGTS rescisório", () => {
+    const r = calcularRescisao(entrada({ m: "sem_justa_causa", av: "trabalhado", s: "3000", a: "2020-03-15", d: "2025-03-14", f: "0", fv: "1" }));
+    assert.ok((valorDe(r, "Férias vencidas + 1/3") ?? 0) > 0);
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), (1400 + 500) * 0.08);
+  });
+
+  test("pedido de demissão deposita FGTS rescisório sem multa", () => {
+    const r = calcularRescisao(entrada({ m: "pedido_demissao", av: "trabalhado", s: "3000", a: "2024-06-01", d: "2025-03-15" }));
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), (1500 + 750) * 0.08);
+    assert.equal(r.fgts.some((v) => v.titulo.startsWith("Multa")), false);
   });
 
   test("sem projeção os avos param no último dia trabalhado", () => {
@@ -152,8 +172,9 @@ describe("calcularRescisao", () => {
   test("acordo paga metade do aviso e multa de 20%", () => {
     const r = calcularRescisao(entrada({ ...contrato, m: "acordo", av: "indenizado" }));
     assert.equal(valorDe(r, "Aviso prévio indenizado"), 1950);
-    assert.equal(valorDe(r, "Multa de 20% do FGTS"), 2000);
-    assert.equal(r.total, 9866.67);
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 496);
+    assert.equal(valorDe(r, "Multa de 20% do FGTS"), 2099.2);
+    assert.equal(r.total, 7866.67);
   });
 
   test("aviso trabalhado não entra no total", () => {
@@ -167,7 +188,7 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(r, "Saldo de salário"), 1500);
     assert.equal(valorDe(r, "13º salário proporcional"), 750);
     assert.equal(valorDe(r, "Férias proporcionais + 1/3"), 3333.33);
-    assert.equal(r.verbas.some((v) => v.titulo.startsWith("Multa")), false);
+    assert.equal(r.fgts.some((v) => v.titulo.startsWith("Multa")), false);
     assert.equal(r.descontos[0]?.valor, 3000);
     assert.equal(r.total, 2583.33);
   });
@@ -199,7 +220,7 @@ describe("calcularRescisao", () => {
 
   test("adiantamento de 13º é descontado", () => {
     const r = calcularRescisao(entrada({ ...contrato, m: "sem_justa_causa", av: "indenizado", ad: "1000" }));
-    assert.equal(r.total, 12816.67);
+    assert.equal(r.total, 8816.67);
   });
 });
 

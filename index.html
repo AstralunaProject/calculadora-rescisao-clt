@@ -59,7 +59,7 @@
     <div class="field" id="campoFgts">
       <label for="fgts">Saldo de FGTS para fins rescisórios (R$)</label>
       <input id="fgts" name="f" type="number" inputmode="decimal" min="0" max="10000000" step="0.01">
-      <span class="hint">Consulte no app FGTS. A multa incide sobre todos os depósitos do contrato, inclusive os já sacados.</span>
+      <span class="hint">Consulte no app FGTS. A multa incide sobre todos os depósitos do contrato, inclusive os já sacados. O depósito sobre as verbas da rescisão é somado no cálculo.</span>
     </div>
 
     <div class="field">
@@ -104,8 +104,18 @@
     </div>
 
     <div class="total">
-      <span>Total estimado</span>
+      <span>A receber na rescisão <small>bruto, sem descontos de INSS/IRRF</small></span>
       <span id="total" class="value"></span>
+    </div>
+
+    <div>
+      <h3>Depositado na conta do FGTS</h3>
+      <p class="hint">Não é pago no termo de rescisão: vai para a conta vinculada e o saque depende da modalidade.</p>
+      <ul id="fgts" class="verbas"></ul>
+      <div class="total total-fgts">
+        <span>Depositado na conta do FGTS</span>
+        <span id="totalFgts" class="value"></span>
+      </div>
     </div>
 
     <ul id="observacoes" class="notes"></ul>

@@ -30,8 +30,10 @@
  * @typedef {object} Resultado
  * @property {Verba[]} verbas
  * @property {Verba[]} descontos
+ * @property {Verba[]} fgts depósitos na conta vinculada, fora do pagamento da rescisão
  * @property {number} bruto
  * @property {number} total
+ * @property {number} totalFGTS
  * @property {number} diasAviso
  * @property {Date} dataEfetiva
  * @property {string[]} observacoes
@@ -96,6 +98,7 @@ export const ROTULOS_AVISO = {
 };
 
 const MS_POR_DIA = 86_400_000;
+const ALIQUOTA_FGTS = 0.08;
 const VALOR_MAXIMO = 10_000_000;
 const ANO_MINIMO = 1950;
 const ANO_MAXIMO = 2100;
@@ -381,23 +384,29 @@ export function calcularRescisao(entrada) {
   const verbas = [];
   /** @type {Verba[]} */
   const descontos = [];
+  /** @type {Verba[]} */
+  const fgts = [];
   const observacoes = [];
 
   const saldo = saldoDeSalario(salario, admissao, desligamento);
   incluir(verbas, "Saldo de salário", `${saldo.dias} dia(s) no mês do desligamento`, saldo.valor);
 
+  let avisoPago = 0;
   if (tipoAviso === "indenizado") {
     const diasPagos = diasAviso * regras.fracaoAviso;
     const detalhe = regras.fracaoAviso < 1
       ? `metade de ${diasAviso} dias (art. 484-A, I, "a")`
       : `${diasAviso} dias (Lei 12.506/2011)`;
-    incluir(verbas, "Aviso prévio indenizado", detalhe, (salario / 30) * diasPagos);
+    avisoPago = centavos((salario / 30) * diasPagos);
+    incluir(verbas, "Aviso prévio indenizado", detalhe, avisoPago);
   }
 
+  let decimoPago = 0;
   if (regras.proporcionais) {
     const decimo = decimoTerceiroProporcional(salario, admissao, desligamento, efetiva);
     const detalhe = decimo.porAno.map((p) => `${p.avos}/12 de ${p.ano}`).join(" + ");
-    incluir(verbas, "13º salário proporcional", `${detalhe} (Lei 4.090/62)`, decimo.valor);
+    decimoPago = centavos(decimo.valor);
+    incluir(verbas, "13º salário proporcional", `${detalhe} (Lei 4.090/62)`, decimoPago);
   }
 
   if (entrada.feriasVencidas > 0) {
@@ -414,10 +423,15 @@ export function calcularRescisao(entrada) {
     incluir(verbas, "Férias proporcionais + 1/3", `${ferias.avos}/12 (CLT, art. 146; Súmula 261 TST)`, ferias.valor);
   }
 
+  // Férias indenizadas não têm FGTS (OJ 195 da SDI-1); o aviso indenizado tem (Súmula 305).
+  const depositoRescisorio = centavos((centavos(saldo.valor) + avisoPago + decimoPago) * ALIQUOTA_FGTS);
+  incluir(fgts, "FGTS sobre verbas rescisórias (8%)", "saldo de salário, aviso indenizado e 13º (Súmula 305 TST)", depositoRescisorio);
   if (regras.multaFGTS > 0) {
     const percentual = Math.round(regras.multaFGTS * 100);
-    incluir(verbas, `Multa de ${percentual}% do FGTS`, `sobre o saldo informado de ${formatarMoeda(saldoFGTS)}`, saldoFGTS * regras.multaFGTS);
+    const base = centavos(saldoFGTS + depositoRescisorio);
+    incluir(fgts, `Multa de ${percentual}% do FGTS`, `sobre ${formatarMoeda(base)}: saldo informado + depósito rescisório`, base * regras.multaFGTS);
   }
+  const totalFGTS = centavos(fgts.reduce((soma, v) => soma + v.valor, 0));
 
   const bruto = centavos(verbas.reduce((soma, v) => soma + v.valor, 0));
 
@@ -446,7 +460,7 @@ export function calcularRescisao(entrada) {
     observacoes.push("Com o aviso dispensado pelo empregador, não há desconto nem pagamento pelo período.");
   }
   if (regras.saqueFGTS === 1) {
-    observacoes.push("FGTS: saque liberado do saldo da conta, além da multa. Quem optou pelo saque-aniversário recebe apenas a multa.");
+    observacoes.push("FGTS: saque liberado do saldo da conta, incluindo o depósito rescisório e a multa. Quem optou pelo saque-aniversário saca apenas a multa.");
   } else if (regras.saqueFGTS > 0) {
     observacoes.push("FGTS: movimentação de até 80% do saldo da conta (CLT, art. 484-A, §1º).");
   } else {
@@ -461,8 +475,10 @@ export function calcularRescisao(entrada) {
   return {
     verbas,
     descontos,
+    fgts,
     bruto,
     total: centavos(bruto - totalDescontos),
+    totalFGTS,
     diasAviso,
     dataEfetiva: efetiva,
     observacoes,
