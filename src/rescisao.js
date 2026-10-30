@@ -145,10 +145,19 @@ function centavos(valor) {
   return Math.round(valor * 100) / 100;
 }
 
+/**
+ * Prazo em anos vence no mesmo dia do mês; se ele não existir no ano de destino (29/02),
+ * vence no dia seguinte, 01/03 (Código Civil, art. 132, §3º). O Date já rola assim.
+ * @param {Date} data @param {number} anos
+ */
+export function somarAnos(data, anos) {
+  return new Date(data.getFullYear() + anos, data.getMonth(), data.getDate());
+}
+
 /** @param {Date} inicio @param {Date} fim */
 export function anosCompletos(inicio, fim) {
   let anos = fim.getFullYear() - inicio.getFullYear();
-  if (somarMeses(inicio, anos * 12) > fim) anos--;
+  if (somarAnos(inicio, anos) > fim) anos--;
   return Math.max(0, anos);
 }
 
@@ -255,8 +264,8 @@ export function decimoTerceiroProporcional(salario, admissao, desligamento, efet
  */
 export function feriasProporcionais(salario, admissao, desligamento, efetiva) {
   const anos = anosDeServico(admissao, desligamento);
-  const inicioPeriodo = somarMeses(admissao, 12 * anos);
-  const fimPeriodo = somarMeses(admissao, 12 * (anos + 1));
+  const inicioPeriodo = somarAnos(admissao, anos);
+  const fimPeriodo = somarAnos(admissao, anos + 1);
   const completouPeriodo = efetiva >= somarDias(fimPeriodo, -1);
   const avos = completouPeriodo
     ? avosDeServico(fimPeriodo, efetiva)

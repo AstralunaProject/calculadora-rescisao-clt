@@ -12,6 +12,7 @@ import {
   mesesCivisComQuinzeDias,
   parseDataLocal,
   saldoDeSalario,
+  somarAnos,
   somarMeses,
 } from "../src/rescisao.js";
 
@@ -49,6 +50,15 @@ describe("datas", () => {
   test("anos completos viram no aniversário da admissão", () => {
     assert.equal(anosCompletos(data("2020-03-15"), data("2025-03-14")), 4);
     assert.equal(anosCompletos(data("2020-03-15"), data("2025-03-15")), 5);
+  });
+
+  test("aniversário de 29/02 em ano não bissexto vence em 01/03", () => {
+    assert.deepEqual(somarAnos(data("2020-02-29"), 1), data("2021-03-01"));
+    assert.equal(anosCompletos(data("2020-02-29"), data("2021-02-28")), 0);
+    assert.equal(anosCompletos(data("2020-02-29"), data("2021-03-01")), 1);
+    assert.equal(anosCompletos(data("2020-02-29"), data("2024-02-29")), 4);
+    assert.equal(anosDeServico(data("2020-02-29"), data("2021-02-27")), 0);
+    assert.equal(anosDeServico(data("2020-02-29"), data("2021-02-28")), 1);
   });
 
   test("anos de serviço contam o último dia trabalhado", () => {
@@ -100,6 +110,14 @@ describe("avos", () => {
     const decimo = decimoTerceiroProporcional(1200, data("2020-01-01"), data("2025-12-10"), data("2026-01-24"));
     assert.deepEqual(decimo.porAno, [{ ano: 2025, avos: 12 }, { ano: 2026, avos: 1 }]);
     assert.equal(decimo.valor, 1300);
+  });
+
+  test("período aquisitivo iniciado em 29/02 só se completa em 01/03", () => {
+    const vespera = feriasProporcionais(3000, data("2020-02-29"), data("2021-02-27"), data("2021-02-27"));
+    assert.equal(vespera.completouPeriodo, false);
+    const ultimoDia = feriasProporcionais(3000, data("2020-02-29"), data("2021-02-28"), data("2021-02-28"));
+    assert.equal(ultimoDia.completouPeriodo, false);
+    assert.equal(ultimoDia.avos, 0);
   });
 
   test("projeção que completa o período aquisitivo gera férias integrais", () => {
