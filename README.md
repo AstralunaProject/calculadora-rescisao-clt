@@ -19,6 +19,19 @@
 | Multa do FGTS | 40% | 40% | 20% | — | — |
 | Desconto do aviso não cumprido | — | — | — | ✓ | — |
 
+Contrato de experiência ou por prazo determinado:
+
+| Verba | Fim no prazo | Empresa encerra antes (art. 479) | Empregado sai antes (art. 480) |
+|---|:-:|:-:|:-:|
+| Saldo, 13º e férias proporcionais + 1/3 | ✓ | ✓ | ✓ |
+| Aviso prévio | — | — | — |
+| Indenização de metade dos dias restantes | — | ✓ | — |
+| Multa do FGTS | — | 40% | — |
+| Saque do FGTS | ✓ | ✓ | — |
+| Seguro-desemprego | — | ✓ | — |
+
+A indenização do art. 479 não sofre INSS, IRRF nem FGTS. No art. 480, a calculadora mostra quanto a empresa pode cobrar por prejuízo comprovado, mas não desconta automaticamente.
+
 Detalhes que a calculadora trata:
 
 - **Projeção do aviso indenizado** no tempo de serviço (art. 487 §1º CLT + OJ 82 SDI-1 TST), com os avos de 13º separados por ano quando a projeção entra no ano seguinte e férias integrais quando ela completa o período aquisitivo.
@@ -47,7 +60,7 @@ Tudo roda no seu dispositivo. Não há backend, analytics nem chamadas de rede a
 É uma **estimativa simplificada**. Não considera:
 
 - Adicionais (insalubridade, periculosidade, noturno), horas extras, comissões e médias variáveis
-- Contratos por prazo determinado (arts. 479 e 480 CLT) e contrato de experiência
+- Contrato a prazo com cláusula de rescisão antecipada (art. 481 CLT): nesse caso valem as regras do contrato sem prazo
 - Redução da jornada no aviso trabalhado (art. 488 CLT)
 - Estabilidades provisórias e verbas previstas em convenção coletiva
 
@@ -71,6 +84,11 @@ Tudo roda no seu dispositivo. Não há backend, analytics nem chamadas de rede a
 | Férias em dobro | CLT, art. 137 |
 | FGTS sobre aviso indenizado e 13º; férias indenizadas fora | Lei 8.036/90, art. 15; Súmula 305 e OJ 195 da SDI-1 do TST |
 | Multa do FGTS | Lei 8.036/90, art. 18 §1º |
+| Prazo do contrato de experiência (90 dias) e do contrato a prazo (2 anos) | CLT, art. 445 |
+| Indenização na rescisão antecipada pela empresa | CLT, art. 479 |
+| Multa de 40% cumulada com a indenização do art. 479 | Decreto 99.684/90, art. 14; Súmula 125 do TST |
+| Indenização devida pelo empregado que sai antes | CLT, art. 480 |
+| Saque do FGTS no fim do contrato a prazo | Lei 8.036/90, art. 20, IX |
 
 ## Desenvolvimento
 
@@ -94,7 +112,7 @@ python3 -m http.server 8000
 
 ## Roadmap
 
-- [ ] Contrato por prazo determinado e de experiência
+- [x] Contrato por prazo determinado e de experiência
 - [x] Descontos de INSS e IRRF (tabelas de 2026)
 - [ ] Médias de horas extras e comissões
 

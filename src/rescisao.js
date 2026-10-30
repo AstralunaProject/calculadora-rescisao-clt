@@ -1,5 +1,5 @@
 /**
- * @typedef {"sem_justa_causa" | "rescisao_indireta" | "acordo" | "pedido_demissao" | "justa_causa"} Modalidade
+ * @typedef {"sem_justa_causa" | "rescisao_indireta" | "acordo" | "pedido_demissao" | "justa_causa" | "termino_prazo" | "antecipada_empresa" | "antecipada_empregado"} Modalidade
  * @typedef {"indenizado" | "trabalhado" | "dispensado" | "nao_cumprido" | "nenhum"} TipoAviso
  *
  * @typedef {object} RegrasModalidade
@@ -10,6 +10,8 @@
  * @property {number} saqueFGTS
  * @property {boolean} proporcionais
  * @property {boolean} seguroDesemprego
+ * @property {boolean} [prazoDeterminado] contrato de experiência ou por prazo determinado
+ * @property {boolean} [exigeFimPrevisto] pede a data em que o contrato terminaria
  *
  * @typedef {object} Entrada
  * @property {number} salario
@@ -22,6 +24,7 @@
  * @property {number} adiantamento13
  * @property {number} dependentes dependentes para o IRRF
  * @property {boolean} projetarAviso
+ * @property {Date | null} fimPrevisto data em que o contrato a prazo terminaria
  *
  * @typedef {object} Verba
  * @property {string} titulo
@@ -87,6 +90,38 @@ export const MODALIDADES = {
     saqueFGTS: 0,
     proporcionais: false,
     seguroDesemprego: false,
+  },
+  termino_prazo: {
+    rotulo: "Fim do contrato de experiência ou a prazo",
+    avisos: ["nenhum"],
+    fracaoAviso: 0,
+    multaFGTS: 0,
+    saqueFGTS: 1,
+    proporcionais: true,
+    seguroDesemprego: false,
+    prazoDeterminado: true,
+  },
+  antecipada_empresa: {
+    rotulo: "Experiência ou prazo encerrado antes pela empresa (art. 479 CLT)",
+    avisos: ["nenhum"],
+    fracaoAviso: 0,
+    multaFGTS: 0.4,
+    saqueFGTS: 1,
+    proporcionais: true,
+    seguroDesemprego: true,
+    prazoDeterminado: true,
+    exigeFimPrevisto: true,
+  },
+  antecipada_empregado: {
+    rotulo: "Experiência ou prazo encerrado antes pelo empregado (art. 480 CLT)",
+    avisos: ["nenhum"],
+    fracaoAviso: 0,
+    multaFGTS: 0,
+    saqueFGTS: 0,
+    proporcionais: true,
+    seguroDesemprego: false,
+    prazoDeterminado: true,
+    exigeFimPrevisto: true,
   },
 };
 
@@ -322,6 +357,7 @@ export function lerEntrada(campos) {
   const admissao = parseDataLocal(texto("a"));
   const desligamento = parseDataLocal(texto("d"));
   const regras = ehModalidade(modalidade) ? MODALIDADES[modalidade] : null;
+  const fimPrevisto = regras?.exigeFimPrevisto ? parseDataLocal(texto("fp")) : null;
 
   const erros = [];
   if (!regras) {
@@ -353,6 +389,16 @@ export function lerEntrada(campos) {
     } else if (feriasVencidas > anosDeServico(admissao, desligamento)) {
       erros.push("Há mais períodos de férias vencidas do que anos completos de contrato.");
     }
+    if (regras?.prazoDeterminado && !foraDoIntervalo(admissao) && !foraDoIntervalo(desligamento)) {
+      const termo = fimPrevisto ?? desligamento;
+      if (regras.exigeFimPrevisto && !fimPrevisto) {
+        erros.push("Informe a data em que o contrato terminaria.");
+      } else if (regras.exigeFimPrevisto && termo <= desligamento) {
+        erros.push("A data prevista para o fim do contrato precisa ser depois do último dia trabalhado.");
+      } else if (termo >= somarAnos(admissao, 2)) {
+        erros.push("Contrato por prazo determinado não pode passar de 2 anos (CLT, art. 445); acima disso, use as modalidades de contrato sem prazo.");
+      }
+    }
   }
 
   if (erros.length > 0 || !ehModalidade(modalidade) || !ehTipoAviso(tipoAviso) || !admissao || !desligamento) {
@@ -371,6 +417,7 @@ export function lerEntrada(campos) {
       adiantamento13,
       dependentes,
       projetarAviso: texto("p") === "on",
+      fimPrevisto,
     },
   };
 }
@@ -409,6 +456,19 @@ export function calcularRescisao(entrada) {
       : `${diasAviso} dias (Lei 12.506/2011)`;
     avisoPago = centavos((salario / 30) * diasPagos);
     incluir(verbas, "Aviso prévio indenizado", detalhe, avisoPago);
+  }
+
+  if (regras.exigeFimPrevisto && entrada.fimPrevisto) {
+    const diasRestantes = diasEntre(desligamento, entrada.fimPrevisto);
+    const metade = (salario / 30) * diasRestantes / 2;
+    if (modalidade === "antecipada_empresa") {
+      incluir(verbas, "Indenização por fim antecipado do contrato", `metade de ${diasRestantes} dia(s) até ${formatarData(entrada.fimPrevisto)} (CLT, art. 479)`, metade);
+    } else {
+      observacoes.push(
+        `Saindo antes do prazo, você pode ter de indenizar prejuízos que a empresa comprovar, até ${formatarMoeda(centavos(metade))} ` +
+        "(metade dos salários até o fim do contrato, CLT, art. 480). Não é automático e, no termo de rescisão, as compensações ficam limitadas a um salário.",
+      );
+    }
   }
 
   let decimoPago = 0;
@@ -486,9 +546,17 @@ export function calcularRescisao(entrada) {
     observacoes.push("O IRRF já considera a redução da Lei 15.270/2025: rendimentos de até R$ 5.000 ficam isentos.");
   }
   observacoes.push(
-    "Aviso prévio indenizado, férias indenizadas com 1/3 e a multa do FGTS não têm INSS nem IRRF. " +
+    (modalidade === "antecipada_empresa"
+      ? "A indenização do art. 479, férias indenizadas com 1/3 e a multa do FGTS não têm INSS nem IRRF. "
+      : "Aviso prévio indenizado, férias indenizadas com 1/3 e a multa do FGTS não têm INSS nem IRRF. ") +
     "O IRRF considera só esta rescisão: se a empresa pagar outro salário no mesmo mês, o imposto pode ser maior.",
   );
+  if (regras.prazoDeterminado) {
+    observacoes.push(
+      "Contrato de experiência não pode passar de 90 dias, somando a prorrogação (CLT, art. 445). Se o contrato tiver cláusula " +
+      "que permite encerrá-lo antes (art. 481), valem as regras do contrato sem prazo: use \"Demissão sem justa causa\" ou \"Pedido de demissão\".",
+    );
+  }
   if (projetado) {
     observacoes.push(`Data efetiva com a projeção do aviso: ${formatarData(efetiva)} (${diasAviso} dias após ${formatarData(desligamento)}).`);
   }
@@ -502,7 +570,9 @@ export function calcularRescisao(entrada) {
   if (tipoAviso === "dispensado") {
     observacoes.push("Com o aviso dispensado pelo empregador, não há desconto nem pagamento pelo período.");
   }
-  if (regras.saqueFGTS === 1) {
+  if (regras.saqueFGTS === 1 && regras.multaFGTS === 0) {
+    observacoes.push("FGTS: saque liberado do saldo da conta, incluindo o depósito rescisório (Lei 8.036, art. 20, IX). Não há multa no fim normal do contrato a prazo.");
+  } else if (regras.saqueFGTS === 1) {
     observacoes.push("FGTS: saque liberado do saldo da conta, incluindo o depósito rescisório e a multa. Quem optou pelo saque-aniversário saca apenas a multa.");
   } else if (regras.saqueFGTS > 0) {
     observacoes.push("FGTS: movimentação de até 80% do saldo da conta (CLT, art. 484-A, §1º).");
