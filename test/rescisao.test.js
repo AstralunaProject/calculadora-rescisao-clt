@@ -311,3 +311,49 @@ describe("lerEntrada", () => {
     assert.equal(e.projetarAviso, false);
   });
 });
+
+describe("contrato de experiência ou a prazo", () => {
+  const base = { av: "nenhum", s: "3000", a: "2026-08-01", d: "2026-09-14", f: "1000" };
+
+  test("fim no prazo: sem aviso, sem multa, com saque e sem seguro-desemprego", () => {
+    const r = calcularRescisao(entrada({ ...base, m: "termino_prazo" }));
+    assert.equal(valorDe(r, "Saldo de salário"), 1400);
+    assert.ok(!r.verbas.some((v) => v.titulo.startsWith("Aviso")));
+    assert.ok(!r.fgts.some((v) => v.titulo.startsWith("Multa")));
+    assert.ok(r.observacoes.some((o) => o.includes("art. 20, IX")));
+    assert.ok(r.observacoes.some((o) => o.includes("não dá direito ao seguro-desemprego")));
+  });
+
+  test("empresa encerra antes: metade dos dias restantes, fora do FGTS e dos impostos, com multa de 40%", () => {
+    const r = calcularRescisao(entrada({ ...base, m: "antecipada_empresa", fp: "2026-10-29" }));
+    assert.equal(valorDe(r, "Indenização por fim antecipado do contrato"), 2250);
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 132);
+    assert.equal(valorDe(r, "Multa de 40% do FGTS"), 452.8);
+    assert.ok(r.observacoes.some((o) => o.startsWith("A indenização do art. 479")));
+
+    const noPrazo = calcularRescisao(entrada({ ...base, m: "termino_prazo" }));
+    assert.equal(r.impostos, noPrazo.impostos);
+    assert.equal(Math.round((r.total - noPrazo.total) * 100) / 100, 2250);
+  });
+
+  test("empregado sai antes: teto da indenização só como observação, sem multa e sem saque", () => {
+    const r = calcularRescisao(entrada({ ...base, m: "antecipada_empregado", fp: "2026-10-29" }));
+    const noPrazo = calcularRescisao(entrada({ ...base, m: "termino_prazo" }));
+    assert.equal(r.total, noPrazo.total);
+    assert.ok(r.observacoes.some((o) => /R\$\s2\.250,00/.test(o) && o.includes("art. 480")));
+    assert.ok(!r.fgts.some((v) => v.titulo.startsWith("Multa")));
+    assert.ok(r.observacoes.some((o) => o.includes("não libera o saque")));
+  });
+
+  test("valida a data prevista e o limite de 2 anos", () => {
+    const erros = (/** @type {Record<string, string>} */ campos) => {
+      const leitura = lerEntrada(new URLSearchParams(campos));
+      return leitura.ok ? [] : leitura.erros;
+    };
+    assert.match(erros({ ...base, m: "antecipada_empresa" }).join(), /data em que o contrato terminaria/);
+    assert.match(erros({ ...base, m: "antecipada_empresa", fp: "2026-09-14" }).join(), /depois do último dia/);
+    assert.match(erros({ ...base, m: "antecipada_empresa", fp: "2028-08-01" }).join(), /2 anos/);
+    assert.match(erros({ ...base, m: "termino_prazo", a: "2024-01-01", d: "2026-01-01" }).join(), /2 anos/);
+    assert.deepEqual(erros({ ...base, m: "termino_prazo", fp: "lixo" }), []);
+  });
+});

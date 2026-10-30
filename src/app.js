@@ -32,6 +32,8 @@ const tipoAviso = elemento("tipoAviso", HTMLSelectElement);
 const campoAviso = elemento("campoAviso", HTMLDivElement);
 const campoFgts = elemento("campoFgts", HTMLDivElement);
 const campoProjecao = elemento("campoProjecao", HTMLDivElement);
+const campoFim = elemento("campoFim", HTMLDivElement);
+const fimPrevisto = elemento("fimPrevisto", HTMLInputElement);
 const caixaErros = elemento("erros", HTMLDivElement);
 const secaoResultado = elemento("resultado", HTMLElement);
 const avisoStatus = elemento("status", HTMLParagraphElement);
@@ -52,6 +54,9 @@ function atualizarCampos() {
   campoAviso.hidden = regras.avisos.length === 1 && regras.avisos[0] === "nenhum";
   campoFgts.hidden = regras.multaFGTS === 0;
   campoProjecao.hidden = tipoAviso.value !== "indenizado";
+  campoFim.hidden = !regras.exigeFimPrevisto;
+  fimPrevisto.disabled = !regras.exigeFimPrevisto;
+  fimPrevisto.required = !fimPrevisto.disabled;
 }
 
 function camposDoFormulario() {
