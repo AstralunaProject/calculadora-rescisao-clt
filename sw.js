@@ -1,4 +1,4 @@
-const CACHE = "rescisao-v3";
+const CACHE = "rescisao-v4";
 const ARQUIVOS = [
   "./",
   "./index.html",

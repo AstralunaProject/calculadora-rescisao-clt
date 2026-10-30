@@ -223,3 +223,8 @@ button.primary {
   .results { margin-top: 0; }
   .verbas li { break-inside: avoid; }
 }
+
+.faq { margin-top: 2.5rem; }
+.faq h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+.faq h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
+.faq p { margin: 0; line-height: 1.55; }
