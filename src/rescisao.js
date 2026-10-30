@@ -30,8 +30,10 @@
  * @typedef {object} Resultado
  * @property {Verba[]} verbas
  * @property {Verba[]} descontos
+ * @property {Verba[]} fgts depósitos na conta vinculada, fora do pagamento da rescisão
  * @property {number} bruto
  * @property {number} total
+ * @property {number} totalFGTS
  * @property {number} diasAviso
  * @property {Date} dataEfetiva
  * @property {string[]} observacoes
@@ -96,6 +98,10 @@ export const ROTULOS_AVISO = {
 };
 
 const MS_POR_DIA = 86_400_000;
+const ALIQUOTA_FGTS = 0.08;
+const VALOR_MAXIMO = 10_000_000;
+const ANO_MINIMO = 1950;
+const ANO_MAXIMO = 2100;
 
 /** @param {string} texto */
 export function parseDataLocal(texto) {
@@ -145,10 +151,19 @@ function centavos(valor) {
   return Math.round(valor * 100) / 100;
 }
 
+/**
+ * Prazo em anos vence no mesmo dia do mês; se ele não existir no ano de destino (29/02),
+ * vence no dia seguinte, 01/03 (Código Civil, art. 132, §3º). O Date já rola assim.
+ * @param {Date} data @param {number} anos
+ */
+export function somarAnos(data, anos) {
+  return new Date(data.getFullYear() + anos, data.getMonth(), data.getDate());
+}
+
 /** @param {Date} inicio @param {Date} fim */
 export function anosCompletos(inicio, fim) {
   let anos = fim.getFullYear() - inicio.getFullYear();
-  if (somarMeses(inicio, anos * 12) > fim) anos--;
+  if (somarAnos(inicio, anos) > fim) anos--;
   return Math.max(0, anos);
 }
 
@@ -255,8 +270,8 @@ export function decimoTerceiroProporcional(salario, admissao, desligamento, efet
  */
 export function feriasProporcionais(salario, admissao, desligamento, efetiva) {
   const anos = anosDeServico(admissao, desligamento);
-  const inicioPeriodo = somarMeses(admissao, 12 * anos);
-  const fimPeriodo = somarMeses(admissao, 12 * (anos + 1));
+  const inicioPeriodo = somarAnos(admissao, anos);
+  const fimPeriodo = somarAnos(admissao, anos + 1);
   const completouPeriodo = efetiva >= somarDias(fimPeriodo, -1);
   const avos = completouPeriodo
     ? avosDeServico(fimPeriodo, efetiva)
@@ -286,18 +301,18 @@ function ehTipoAviso(valor) {
  */
 export function lerEntrada(campos) {
   const texto = (/** @type {string} */ nome) => (campos.get(nome) ?? "").trim();
-  const numero = (/** @type {string} */ nome, /** @type {number} */ vazio) => {
+  const dinheiro = (/** @type {string} */ nome, /** @type {number} */ vazio) => {
     if (texto(nome) === "") return vazio;
-    const valor = Number(texto(nome));
-    return Number.isFinite(valor) ? valor : NaN;
+    if (!/^\d+([.,]\d{1,2})?$/.test(texto(nome))) return NaN;
+    return Number(texto(nome).replace(",", "."));
   };
 
   const modalidade = texto("m");
   const tipoAviso = texto("av");
-  const salario = numero("s", NaN);
-  const saldoFGTS = numero("f", NaN);
-  const adiantamento13 = numero("ad", 0);
-  const feriasVencidas = numero("fv", 0);
+  const salario = dinheiro("s", NaN);
+  const saldoFGTS = dinheiro("f", NaN);
+  const adiantamento13 = dinheiro("ad", 0);
+  const feriasVencidas = texto("fv") === "" ? 0 : Number(texto("fv"));
   const admissao = parseDataLocal(texto("a"));
   const desligamento = parseDataLocal(texto("d"));
   const regras = ehModalidade(modalidade) ? MODALIDADES[modalidade] : null;
@@ -308,16 +323,23 @@ export function lerEntrada(campos) {
   } else if (!ehTipoAviso(tipoAviso) || !regras.avisos.includes(tipoAviso)) {
     erros.push("Selecione o tipo de aviso prévio.");
   }
+  const limite = formatarMoeda(VALOR_MAXIMO);
   if (!(salario > 0)) erros.push("Informe um salário maior que zero.");
-  if (regras && regras.multaFGTS > 0 && !(saldoFGTS >= 0)) {
-    erros.push("Informe um saldo de FGTS válido (zero ou maior).");
+  else if (salario > VALOR_MAXIMO) erros.push(`O salário deve ser de até ${limite}.`);
+  if (regras && regras.multaFGTS > 0) {
+    if (!(saldoFGTS >= 0)) erros.push("Informe um saldo de FGTS válido (zero ou maior).");
+    else if (saldoFGTS > VALOR_MAXIMO) erros.push(`O saldo de FGTS deve ser de até ${limite}.`);
   }
   if (!(adiantamento13 >= 0)) erros.push("O adiantamento de 13º deve ser zero ou maior.");
+  else if (adiantamento13 > VALOR_MAXIMO) erros.push(`O adiantamento de 13º deve ser de até ${limite}.`);
   if (![0, 1, 2].includes(feriasVencidas)) erros.push("Férias vencidas: escolha entre 0 e 2 períodos.");
   if (!admissao) erros.push("Informe a data de admissão.");
   if (!desligamento) erros.push("Informe a data de desligamento.");
   if (admissao && desligamento) {
-    if (desligamento < admissao) {
+    const foraDoIntervalo = (/** @type {Date} */ d) => d.getFullYear() < ANO_MINIMO || d.getFullYear() > ANO_MAXIMO;
+    if (foraDoIntervalo(admissao) || foraDoIntervalo(desligamento)) {
+      erros.push(`As datas devem estar entre ${ANO_MINIMO} e ${ANO_MAXIMO}.`);
+    } else if (desligamento < admissao) {
       erros.push("A data de desligamento não pode ser anterior à admissão.");
     } else if (feriasVencidas > anosDeServico(admissao, desligamento)) {
       erros.push("Há mais períodos de férias vencidas do que anos completos de contrato.");
@@ -362,23 +384,29 @@ export function calcularRescisao(entrada) {
   const verbas = [];
   /** @type {Verba[]} */
   const descontos = [];
+  /** @type {Verba[]} */
+  const fgts = [];
   const observacoes = [];
 
   const saldo = saldoDeSalario(salario, admissao, desligamento);
   incluir(verbas, "Saldo de salário", `${saldo.dias} dia(s) no mês do desligamento`, saldo.valor);
 
+  let avisoPago = 0;
   if (tipoAviso === "indenizado") {
     const diasPagos = diasAviso * regras.fracaoAviso;
     const detalhe = regras.fracaoAviso < 1
       ? `metade de ${diasAviso} dias (art. 484-A, I, "a")`
       : `${diasAviso} dias (Lei 12.506/2011)`;
-    incluir(verbas, "Aviso prévio indenizado", detalhe, (salario / 30) * diasPagos);
+    avisoPago = centavos((salario / 30) * diasPagos);
+    incluir(verbas, "Aviso prévio indenizado", detalhe, avisoPago);
   }
 
+  let decimoPago = 0;
   if (regras.proporcionais) {
     const decimo = decimoTerceiroProporcional(salario, admissao, desligamento, efetiva);
     const detalhe = decimo.porAno.map((p) => `${p.avos}/12 de ${p.ano}`).join(" + ");
-    incluir(verbas, "13º salário proporcional", `${detalhe} (Lei 4.090/62)`, decimo.valor);
+    decimoPago = centavos(decimo.valor);
+    incluir(verbas, "13º salário proporcional", `${detalhe} (Lei 4.090/62)`, decimoPago);
   }
 
   if (entrada.feriasVencidas > 0) {
@@ -395,18 +423,33 @@ export function calcularRescisao(entrada) {
     incluir(verbas, "Férias proporcionais + 1/3", `${ferias.avos}/12 (CLT, art. 146; Súmula 261 TST)`, ferias.valor);
   }
 
+  const abatidoNo13 = Math.min(entrada.adiantamento13, decimoPago);
+  const excedente13 = centavos(entrada.adiantamento13 - abatidoNo13);
+
+  // Férias indenizadas não têm FGTS (OJ 195 da SDI-1); o aviso indenizado tem (Súmula 305).
+  // A parcela adiantada do 13º já teve o FGTS depositado quando foi paga.
+  const baseDeposito = centavos(saldo.valor) + avisoPago + decimoPago - abatidoNo13;
+  const depositoRescisorio = centavos(baseDeposito * ALIQUOTA_FGTS);
+  incluir(fgts, "FGTS sobre verbas rescisórias (8%)", "saldo de salário, aviso indenizado e 13º (Súmula 305 TST)", depositoRescisorio);
   if (regras.multaFGTS > 0) {
     const percentual = Math.round(regras.multaFGTS * 100);
-    incluir(verbas, `Multa de ${percentual}% do FGTS`, `sobre o saldo informado de ${formatarMoeda(saldoFGTS)}`, saldoFGTS * regras.multaFGTS);
+    const base = centavos(saldoFGTS + depositoRescisorio);
+    incluir(fgts, `Multa de ${percentual}% do FGTS`, `sobre ${formatarMoeda(base)}: saldo informado + depósito rescisório`, base * regras.multaFGTS);
   }
+  const totalFGTS = centavos(fgts.reduce((soma, v) => soma + v.valor, 0));
 
   const bruto = centavos(verbas.reduce((soma, v) => soma + v.valor, 0));
 
-  incluir(descontos, "Adiantamento de 13º já recebido", "abatido do 13º", entrada.adiantamento13);
-  if (tipoAviso === "nao_cumprido") {
-    incluir(descontos, "Aviso prévio não cumprido", "30 dias de salário (CLT, art. 487, §2º)", salario);
+  incluir(descontos, "Adiantamento de 13º já recebido", "abatido do 13º", abatidoNo13);
+  incluir(descontos, "Adiantamento de 13º excedente", "maior que o 13º devido, compensado nas demais verbas", excedente13);
+  const avisoDescontado = tipoAviso === "nao_cumprido" ? salario : 0;
+  incluir(descontos, "Aviso prévio não cumprido", "30 dias de salário (CLT, art. 487, §2º)", avisoDescontado);
+  const compensacoes = excedente13 + avisoDescontado;
+  const compensado = Math.min(salario, compensacoes);
+  if (compensado < compensacoes) {
+    observacoes.push(`As compensações com outras verbas foram limitadas a um salário, ${formatarMoeda(salario)} (CLT, art. 477, §5º).`);
   }
-  const somaDescontos = descontos.reduce((soma, d) => soma + d.valor, 0);
+  const somaDescontos = abatidoNo13 + compensado;
   // O empregador só compensa até o que tem a pagar; o excedente não vira dívida na rescisão.
   const totalDescontos = Math.min(bruto, somaDescontos);
   if (totalDescontos < somaDescontos) {
@@ -427,7 +470,7 @@ export function calcularRescisao(entrada) {
     observacoes.push("Com o aviso dispensado pelo empregador, não há desconto nem pagamento pelo período.");
   }
   if (regras.saqueFGTS === 1) {
-    observacoes.push("FGTS: saque liberado do saldo da conta, além da multa. Quem optou pelo saque-aniversário recebe apenas a multa.");
+    observacoes.push("FGTS: saque liberado do saldo da conta, incluindo o depósito rescisório e a multa. Quem optou pelo saque-aniversário saca apenas a multa.");
   } else if (regras.saqueFGTS > 0) {
     observacoes.push("FGTS: movimentação de até 80% do saldo da conta (CLT, art. 484-A, §1º).");
   } else {
@@ -442,8 +485,10 @@ export function calcularRescisao(entrada) {
   return {
     verbas,
     descontos,
+    fgts,
     bruto,
     total: centavos(bruto - totalDescontos),
+    totalFGTS,
     diasAviso,
     dataEfetiva: efetiva,
     observacoes,

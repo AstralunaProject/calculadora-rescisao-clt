@@ -66,12 +66,16 @@ function camposDoFormulario() {
 function aplicarCampos(campos) {
   const m = campos.get("m");
   if (m && Object.hasOwn(MODALIDADES, m)) modalidade.value = m;
+  else modalidade.selectedIndex = 0;
   atualizarCampos();
+  // Campos ausentes no link voltam ao padrão para não herdar valores de um link anterior.
   for (const campo of form.elements) {
     if (!(campo instanceof HTMLInputElement || campo instanceof HTMLSelectElement) || campo === modalidade) continue;
     const valor = campos.get(campo.name);
     if (campo instanceof HTMLInputElement && campo.type === "checkbox") campo.checked = valor === "on";
     else if (valor !== null) campo.value = valor;
+    else if (campo instanceof HTMLSelectElement) campo.selectedIndex = 0;
+    else campo.value = campo.defaultValue;
   }
   atualizarCampos();
 }
@@ -129,6 +133,10 @@ function renderizar(entrada, resultado) {
   );
   elemento("blocoDescontos", HTMLDivElement).hidden = resultado.descontos.length === 0;
   elemento("total", HTMLSpanElement).textContent = formatarMoeda(resultado.total);
+  elemento("fgts", HTMLUListElement).replaceChildren(
+    ...resultado.fgts.map((v) => itemDeLista(v.titulo, v.detalhe, formatarMoeda(v.valor))),
+  );
+  elemento("totalFgts", HTMLSpanElement).textContent = formatarMoeda(resultado.totalFGTS);
   elemento("observacoes", HTMLUListElement).replaceChildren(
     ...resultado.observacoes.map((texto) => Object.assign(document.createElement("li"), { textContent: texto })),
   );
@@ -163,7 +171,10 @@ function resumoEmTexto(entrada, resultado) {
     ...resultado.verbas.map((v) => linha(v, "")),
     ...resultado.descontos.map((d) => linha(d, "− ")),
     "",
-    `Total estimado: ${formatarMoeda(resultado.total)}`,
+    `A receber na rescisão (bruto, sem INSS/IRRF): ${formatarMoeda(resultado.total)}`,
+    "",
+    ...resultado.fgts.map((v) => linha(v, "")),
+    `Depositado na conta do FGTS: ${formatarMoeda(resultado.totalFGTS)}`,
     "",
     ...resultado.observacoes.map((o) => `* ${o}`),
     "",
