@@ -1,4 +1,4 @@
-const CACHE = "rescisao-v2";
+const CACHE = "rescisao-v3";
 const ARQUIVOS = [
   "./",
   "./index.html",
@@ -27,11 +27,11 @@ self.addEventListener("fetch", (evento) => {
   const { request } = evento;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
   evento.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-cache" })
       .then((resposta) => {
         if (resposta.ok) {
           const copia = resposta.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copia));
+          evento.waitUntil(caches.open(CACHE).then((cache) => cache.put(request, copia)));
         }
         return resposta;
       })
