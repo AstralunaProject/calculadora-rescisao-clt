@@ -24,7 +24,7 @@ Detalhes que a calculadora trata:
 - **Projeção do aviso indenizado** no tempo de serviço (art. 487 §1º CLT + OJ 82 SDI-1 TST), com os avos de 13º separados por ano quando a projeção entra no ano seguinte e férias integrais quando ela completa o período aquisitivo.
 - **Avos de férias contados pelo período aquisitivo**, não pelo mês civil (art. 146, parágrafo único), e avos de 13º pelo mês civil com a regra dos 15 dias (Lei 4.090/62).
 - **Saldo de salário no mês comercial**: mês trabalhado inteiro vale 30 dias, inclusive em fevereiro.
-- **Resultado em duas partes**: o valor a receber na rescisão, bruto (sem descontos de INSS/IRRF), e o que é depositado na conta do FGTS, que não é pago no termo de rescisão.
+- **Bruto e líquido**: o valor a receber na rescisão já com INSS e IRRF de 2026 (redução da Lei 15.270/2025 incluída e dependentes considerados), separado do que é depositado na conta do FGTS, que não é pago no termo de rescisão.
 - **FGTS rescisório**: 8% sobre saldo de salário, aviso indenizado (Súmula 305 TST) e 13º; férias indenizadas não entram (OJ 195 SDI-1 TST). Esse depósito soma ao saldo informado na base da multa.
 - **Dois períodos de férias vencidas**: o mais antigo sai em dobro, porque o prazo concessivo dele já acabou (art. 137).
 - **Adiantamento de 13º** já recebido é abatido do 13º; o que passar dele, somado ao desconto do aviso não cumprido, é compensado até o limite de um salário (art. 477 §5º CLT). Descontos nunca passam do valor das verbas.
@@ -46,7 +46,6 @@ Tudo roda no seu dispositivo. Não há backend, analytics nem chamadas de rede a
 
 É uma **estimativa simplificada**. Não considera:
 
-- Descontos de INSS e IRRF
 - Adicionais (insalubridade, periculosidade, noturno), horas extras, comissões e médias variáveis
 - Contratos por prazo determinado (arts. 479 e 480 CLT) e contrato de experiência
 - Redução da jornada no aviso trabalhado (art. 488 CLT)
@@ -96,7 +95,7 @@ python3 -m http.server 8000
 ## Roadmap
 
 - [ ] Contrato por prazo determinado e de experiência
-- [ ] Descontos de INSS e IRRF com tabelas anuais
+- [x] Descontos de INSS e IRRF (tabelas de 2026)
 - [ ] Médias de horas extras e comissões
 
 Sugestões e PRs são bem-vindos.

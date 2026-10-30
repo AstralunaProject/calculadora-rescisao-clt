@@ -1,10 +1,11 @@
-const CACHE = "rescisao-v4";
+const CACHE = "rescisao-v5";
 const ARQUIVOS = [
   "./",
   "./index.html",
   "./style.css",
   "./src/app.js",
   "./src/rescisao.js",
+  "./src/tributos.js",
   "./icon.svg",
   "./manifest.webmanifest",
 ];
