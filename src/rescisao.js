@@ -423,8 +423,13 @@ export function calcularRescisao(entrada) {
     incluir(verbas, "Férias proporcionais + 1/3", `${ferias.avos}/12 (CLT, art. 146; Súmula 261 TST)`, ferias.valor);
   }
 
+  const abatidoNo13 = Math.min(entrada.adiantamento13, decimoPago);
+  const excedente13 = centavos(entrada.adiantamento13 - abatidoNo13);
+
   // Férias indenizadas não têm FGTS (OJ 195 da SDI-1); o aviso indenizado tem (Súmula 305).
-  const depositoRescisorio = centavos((centavos(saldo.valor) + avisoPago + decimoPago) * ALIQUOTA_FGTS);
+  // A parcela adiantada do 13º já teve o FGTS depositado quando foi paga.
+  const baseDeposito = centavos(saldo.valor) + avisoPago + decimoPago - abatidoNo13;
+  const depositoRescisorio = centavos(baseDeposito * ALIQUOTA_FGTS);
   incluir(fgts, "FGTS sobre verbas rescisórias (8%)", "saldo de salário, aviso indenizado e 13º (Súmula 305 TST)", depositoRescisorio);
   if (regras.multaFGTS > 0) {
     const percentual = Math.round(regras.multaFGTS * 100);
@@ -435,11 +440,16 @@ export function calcularRescisao(entrada) {
 
   const bruto = centavos(verbas.reduce((soma, v) => soma + v.valor, 0));
 
-  incluir(descontos, "Adiantamento de 13º já recebido", "abatido do 13º", entrada.adiantamento13);
-  if (tipoAviso === "nao_cumprido") {
-    incluir(descontos, "Aviso prévio não cumprido", "30 dias de salário (CLT, art. 487, §2º)", salario);
+  incluir(descontos, "Adiantamento de 13º já recebido", "abatido do 13º", abatidoNo13);
+  incluir(descontos, "Adiantamento de 13º excedente", "maior que o 13º devido, compensado nas demais verbas", excedente13);
+  const avisoDescontado = tipoAviso === "nao_cumprido" ? salario : 0;
+  incluir(descontos, "Aviso prévio não cumprido", "30 dias de salário (CLT, art. 487, §2º)", avisoDescontado);
+  const compensacoes = excedente13 + avisoDescontado;
+  const compensado = Math.min(salario, compensacoes);
+  if (compensado < compensacoes) {
+    observacoes.push(`As compensações com outras verbas foram limitadas a um salário, ${formatarMoeda(salario)} (CLT, art. 477, §5º).`);
   }
-  const somaDescontos = descontos.reduce((soma, d) => soma + d.valor, 0);
+  const somaDescontos = abatidoNo13 + compensado;
   // O empregador só compensa até o que tem a pagar; o excedente não vira dívida na rescisão.
   const totalDescontos = Math.min(bruto, somaDescontos);
   if (totalDescontos < somaDescontos) {

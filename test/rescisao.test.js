@@ -218,9 +218,26 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(aniversario, "Férias vencidas + 1/3"), 4000);
   });
 
-  test("adiantamento de 13º é descontado", () => {
+  test("adiantamento de 13º é abatido do 13º e sai da base do FGTS rescisório", () => {
     const r = calcularRescisao(entrada({ ...contrato, m: "sem_justa_causa", av: "indenizado", ad: "1000" }));
+    assert.deepEqual(r.descontos.map((d) => d.valor), [1000]);
     assert.equal(r.total, 8816.67);
+    assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 572);
+    assert.equal(valorDe(r, "Multa de 40% do FGTS"), 4228.8);
+  });
+
+  test("adiantamento maior que o 13º compensa o excedente nas demais verbas", () => {
+    const r = calcularRescisao(entrada({ m: "justa_causa", av: "nenhum", s: "3000", a: "2020-01-01", d: "2025-03-15", ad: "1500" }));
+    assert.deepEqual(r.descontos.map((d) => [d.titulo, d.valor]), [["Adiantamento de 13º excedente", 1500]]);
+    assert.equal(r.total, 0);
+  });
+
+  test("compensações fora do 13º ficam limitadas a um salário (art. 477, §5º)", () => {
+    const r = calcularRescisao(entrada({ m: "pedido_demissao", av: "nao_cumprido", s: "3000", a: "2024-06-01", d: "2025-03-15", ad: "2000" }));
+    assert.deepEqual(r.descontos.map((d) => d.valor), [750, 1250, 3000]);
+    assert.equal(r.bruto, 5583.33);
+    assert.equal(r.total, 1833.33);
+    assert.ok(r.observacoes.some((o) => o.includes("art. 477, §5º")));
   });
 });
 
