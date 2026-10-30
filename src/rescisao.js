@@ -20,6 +20,7 @@
  * @property {number} saldoFGTS
  * @property {number} feriasVencidas
  * @property {number} adiantamento13
+ * @property {number} dependentes dependentes para o IRRF
  * @property {boolean} projetarAviso
  *
  * @typedef {object} Verba
@@ -32,6 +33,7 @@
  * @property {Verba[]} descontos
  * @property {Verba[]} fgts depósitos na conta vinculada, fora do pagamento da rescisão
  * @property {number} bruto
+ * @property {number} impostos INSS e IRRF retidos
  * @property {number} total
  * @property {number} totalFGTS
  * @property {number} diasAviso
@@ -97,11 +99,14 @@ export const ROTULOS_AVISO = {
   nenhum: "Não se aplica",
 };
 
+import { ANO_TABELAS, calcularINSS, calcularIRRF } from "./tributos.js";
+
 const MS_POR_DIA = 86_400_000;
 const ALIQUOTA_FGTS = 0.08;
 const VALOR_MAXIMO = 10_000_000;
 const ANO_MINIMO = 1950;
 const ANO_MAXIMO = 2100;
+const MAX_DEPENDENTES = 20;
 
 /** @param {string} texto */
 export function parseDataLocal(texto) {
@@ -313,6 +318,7 @@ export function lerEntrada(campos) {
   const saldoFGTS = dinheiro("f", NaN);
   const adiantamento13 = dinheiro("ad", 0);
   const feriasVencidas = texto("fv") === "" ? 0 : Number(texto("fv"));
+  const dependentes = texto("dp") === "" ? 0 : Number(texto("dp"));
   const admissao = parseDataLocal(texto("a"));
   const desligamento = parseDataLocal(texto("d"));
   const regras = ehModalidade(modalidade) ? MODALIDADES[modalidade] : null;
@@ -333,6 +339,9 @@ export function lerEntrada(campos) {
   if (!(adiantamento13 >= 0)) erros.push("O adiantamento de 13º deve ser zero ou maior.");
   else if (adiantamento13 > VALOR_MAXIMO) erros.push(`O adiantamento de 13º deve ser de até ${limite}.`);
   if (![0, 1, 2].includes(feriasVencidas)) erros.push("Férias vencidas: escolha entre 0 e 2 períodos.");
+  if (!Number.isInteger(dependentes) || dependentes < 0 || dependentes > MAX_DEPENDENTES) {
+    erros.push(`Dependentes: informe um número inteiro de 0 a ${MAX_DEPENDENTES}.`);
+  }
   if (!admissao) erros.push("Informe a data de admissão.");
   if (!desligamento) erros.push("Informe a data de desligamento.");
   if (admissao && desligamento) {
@@ -360,6 +369,7 @@ export function lerEntrada(campos) {
       saldoFGTS: MODALIDADES[modalidade].multaFGTS > 0 ? saldoFGTS : 0,
       feriasVencidas,
       adiantamento13,
+      dependentes,
       projetarAviso: texto("p") === "on",
     },
   };
@@ -449,13 +459,36 @@ export function calcularRescisao(entrada) {
   if (compensado < compensacoes) {
     observacoes.push(`As compensações com outras verbas foram limitadas a um salário, ${formatarMoeda(salario)} (CLT, art. 477, §5º).`);
   }
-  const somaDescontos = abatidoNo13 + compensado;
+  // Saldo de salário e 13º têm INSS e IRRF, cada um calculado em separado. Aviso indenizado, férias
+  // indenizadas com 1/3 e multa do FGTS são isentos (STJ Tema 478; Lei 8.212, art. 28, §9º; IN RFB 1.500/2014).
+  const saldoTributavel = centavos(saldo.valor);
+  const inssSaldo = calcularINSS(saldoTributavel);
+  const irrfSaldo = calcularIRRF({ rendimento: saldoTributavel, inss: inssSaldo, dependentes: entrada.dependentes });
+  const inss13 = calcularINSS(decimoPago);
+  const irrf13 = calcularIRRF({ rendimento: decimoPago, inss: inss13, dependentes: entrada.dependentes });
+  incluir(descontos, "INSS sobre o saldo de salário", `tabela progressiva de ${ANO_TABELAS}`, inssSaldo);
+  incluir(descontos, "IRRF sobre o saldo de salário", `base ${formatarMoeda(irrfSaldo.base)}`, irrfSaldo.valor);
+  incluir(descontos, "INSS sobre o 13º", "calculado em separado do salário", inss13);
+  incluir(descontos, "IRRF sobre o 13º", `tributação exclusiva, base ${formatarMoeda(irrf13.base)}`, irrf13.valor);
+  const impostos = centavos(inssSaldo + irrfSaldo.valor + inss13 + irrf13.valor);
+
+  const somaDescontos = abatidoNo13 + compensado + impostos;
   // O empregador só compensa até o que tem a pagar; o excedente não vira dívida na rescisão.
   const totalDescontos = Math.min(bruto, somaDescontos);
   if (totalDescontos < somaDescontos) {
     observacoes.push(`Os descontos foram limitados ao valor das verbas (${formatarMoeda(bruto)}).`);
   }
 
+  if (desligamento.getFullYear() !== ANO_TABELAS) {
+    observacoes.push(`INSS e IRRF calculados com as tabelas de ${ANO_TABELAS}.`);
+  }
+  if (irrfSaldo.reducao > 0 || irrf13.reducao > 0) {
+    observacoes.push("O IRRF já considera a redução da Lei 15.270/2025: rendimentos de até R$ 5.000 ficam isentos.");
+  }
+  observacoes.push(
+    "Aviso prévio indenizado, férias indenizadas com 1/3 e a multa do FGTS não têm INSS nem IRRF. " +
+    "O IRRF considera só esta rescisão: se a empresa pagar outro salário no mesmo mês, o imposto pode ser maior.",
+  );
   if (projetado) {
     observacoes.push(`Data efetiva com a projeção do aviso: ${formatarData(efetiva)} (${diasAviso} dias após ${formatarData(desligamento)}).`);
   }
@@ -487,6 +520,7 @@ export function calcularRescisao(entrada) {
     descontos,
     fgts,
     bruto,
+    impostos,
     total: centavos(bruto - totalDescontos),
     totalFGTS,
     diasAviso,

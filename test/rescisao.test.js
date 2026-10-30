@@ -30,6 +30,11 @@ function entrada(campos) {
   return leitura.entrada;
 }
 
+/** Total antes de INSS e IRRF, para conferir as regras que não envolvem impostos. @param {import("../src/rescisao.js").Resultado} r */
+const semImpostos = (r) => Math.round((r.total + r.impostos) * 100) / 100;
+/** @param {import("../src/rescisao.js").Resultado} r */
+const descontosSemImpostos = (r) => r.descontos.filter((d) => !/^(INSS|IRRF)/.test(d.titulo));
+
 /** @param {import("../src/rescisao.js").Resultado} resultado @param {string} titulo */
 function valorDe(resultado, titulo) {
   return [...resultado.verbas, ...resultado.fgts].find((v) => v.titulo === titulo)?.valor;
@@ -141,7 +146,7 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(r, "Férias proporcionais + 1/3"), 1666.67);
     assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 652);
     assert.equal(valorDe(r, "Multa de 40% do FGTS"), 4260.8);
-    assert.equal(r.total, 9816.67);
+    assert.equal(semImpostos(r), 9816.67);
     assert.equal(r.totalFGTS, 4912.8);
   });
 
@@ -174,7 +179,7 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(r, "Aviso prévio indenizado"), 1950);
     assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 496);
     assert.equal(valorDe(r, "Multa de 20% do FGTS"), 2099.2);
-    assert.equal(r.total, 7866.67);
+    assert.equal(semImpostos(r), 7866.67);
   });
 
   test("aviso trabalhado não entra no total", () => {
@@ -190,7 +195,7 @@ describe("calcularRescisao", () => {
     assert.equal(valorDe(r, "Férias proporcionais + 1/3"), 3333.33);
     assert.equal(r.fgts.some((v) => v.titulo.startsWith("Multa")), false);
     assert.equal(r.descontos[0]?.valor, 3000);
-    assert.equal(r.total, 2583.33);
+    assert.equal(semImpostos(r), 2583.33);
   });
 
   test("descontos nunca passam do valor das verbas", () => {
@@ -204,7 +209,7 @@ describe("calcularRescisao", () => {
     const r = calcularRescisao(entrada({ m: "justa_causa", av: "nenhum", s: "3000", a: "2020-01-01", d: "2025-03-15", fv: "2" }));
     assert.deepEqual(r.verbas.map((v) => v.valor), [1500, 4000, 8000]);
     assert.equal(r.diasAviso, 0);
-    assert.equal(r.total, 13500);
+    assert.equal(semImpostos(r), 13500);
   });
 
   test("sair na véspera ou no aniversário da admissão não muda aviso nem férias", () => {
@@ -220,23 +225,23 @@ describe("calcularRescisao", () => {
 
   test("adiantamento de 13º é abatido do 13º e sai da base do FGTS rescisório", () => {
     const r = calcularRescisao(entrada({ ...contrato, m: "sem_justa_causa", av: "indenizado", ad: "1000" }));
-    assert.deepEqual(r.descontos.map((d) => d.valor), [1000]);
-    assert.equal(r.total, 8816.67);
+    assert.deepEqual(descontosSemImpostos(r).map((d) => d.valor), [1000]);
+    assert.equal(semImpostos(r), 8816.67);
     assert.equal(valorDe(r, "FGTS sobre verbas rescisórias (8%)"), 572);
     assert.equal(valorDe(r, "Multa de 40% do FGTS"), 4228.8);
   });
 
   test("adiantamento maior que o 13º compensa o excedente nas demais verbas", () => {
     const r = calcularRescisao(entrada({ m: "justa_causa", av: "nenhum", s: "3000", a: "2020-01-01", d: "2025-03-15", ad: "1500" }));
-    assert.deepEqual(r.descontos.map((d) => [d.titulo, d.valor]), [["Adiantamento de 13º excedente", 1500]]);
+    assert.deepEqual(descontosSemImpostos(r).map((d) => [d.titulo, d.valor]), [["Adiantamento de 13º excedente", 1500]]);
     assert.equal(r.total, 0);
   });
 
   test("compensações fora do 13º ficam limitadas a um salário (art. 477, §5º)", () => {
     const r = calcularRescisao(entrada({ m: "pedido_demissao", av: "nao_cumprido", s: "3000", a: "2024-06-01", d: "2025-03-15", ad: "2000" }));
-    assert.deepEqual(r.descontos.map((d) => d.valor), [750, 1250, 3000]);
+    assert.deepEqual(descontosSemImpostos(r).map((d) => d.valor), [750, 1250, 3000]);
     assert.equal(r.bruto, 5583.33);
-    assert.equal(r.total, 1833.33);
+    assert.equal(semImpostos(r), 1833.33);
     assert.ok(r.observacoes.some((o) => o.includes("art. 477, §5º")));
   });
 });

@@ -132,6 +132,7 @@ function renderizar(entrada, resultado) {
     ...resultado.descontos.map((d) => itemDeLista(d.titulo, d.detalhe, `− ${formatarMoeda(d.valor)}`)),
   );
   elemento("blocoDescontos", HTMLDivElement).hidden = resultado.descontos.length === 0;
+  elemento("bruto", HTMLSpanElement).textContent = formatarMoeda(resultado.bruto);
   elemento("total", HTMLSpanElement).textContent = formatarMoeda(resultado.total);
   elemento("listaFgts", HTMLUListElement).replaceChildren(
     ...resultado.fgts.map((v) => itemDeLista(v.titulo, v.detalhe, formatarMoeda(v.valor))),
@@ -171,7 +172,8 @@ function resumoEmTexto(entrada, resultado) {
     ...resultado.verbas.map((v) => linha(v, "")),
     ...resultado.descontos.map((d) => linha(d, "− ")),
     "",
-    `A receber na rescisão (bruto, sem INSS/IRRF): ${formatarMoeda(resultado.total)}`,
+    `Total bruto: ${formatarMoeda(resultado.bruto)}`,
+    `A receber na rescisão (líquido, após INSS e IRRF): ${formatarMoeda(resultado.total)}`,
     "",
     ...resultado.fgts.map((v) => linha(v, "")),
     `Depositado na conta do FGTS: ${formatarMoeda(resultado.totalFGTS)}`,
