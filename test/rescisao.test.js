@@ -233,6 +233,35 @@ describe("lerEntrada", () => {
     assert.equal(lerEntrada(new URLSearchParams({ ...base, ad: "Infinity" })).ok, false);
   });
 
+  test("aceita valores com ponto ou vírgula e até dois decimais", () => {
+    const base = { m: "sem_justa_causa", av: "indenizado", a: "2020-01-01", d: "2025-01-01", f: "0" };
+    assert.equal(entrada({ ...base, s: "1500.5" }).salario, 1500.5);
+    assert.equal(entrada({ ...base, s: "1500,25" }).salario, 1500.25);
+    assert.equal(entrada({ ...base, s: "1000", ad: "" }).adiantamento13, 0);
+  });
+
+  test("recusa formatos numéricos que não são valores em reais", () => {
+    const base = { m: "sem_justa_causa", av: "indenizado", s: "1000", a: "2020-01-01", d: "2025-01-01", f: "0" };
+    for (const valor of ["1e3", "0x10", "-5", "1.234", "1.000,00", ".5", "5.", " 1 0"]) {
+      assert.equal(lerEntrada(new URLSearchParams({ ...base, s: valor })).ok, false, valor);
+    }
+  });
+
+  test("recusa valores acima de R$ 10 milhões", () => {
+    const base = { m: "sem_justa_causa", av: "indenizado", s: "1000", a: "2020-01-01", d: "2025-01-01", f: "0" };
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, s: "10000000" })).ok, true);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, s: "10000000.01" })).ok, false);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, f: "99999999" })).ok, false);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, ad: "99999999" })).ok, false);
+  });
+
+  test("recusa datas fora do intervalo de 1950 a 2100", () => {
+    const base = { m: "sem_justa_causa", av: "indenizado", s: "1000", a: "2020-01-01", d: "2025-01-01", f: "0" };
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, a: "1949-12-31" })).ok, false);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, d: "2101-01-01" })).ok, false);
+    assert.equal(lerEntrada(new URLSearchParams({ ...base, a: "1950-01-01", d: "2100-12-31" })).ok, true);
+  });
+
   test("FGTS é opcional quando a modalidade não tem multa", () => {
     const e = entrada({ m: "pedido_demissao", av: "trabalhado", s: "1000", a: "2024-06-01", d: "2025-03-01" });
     assert.equal(e.saldoFGTS, 0);

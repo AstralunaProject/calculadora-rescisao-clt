@@ -36,18 +36,18 @@
 
     <div class="field">
       <label for="salario">Salário mensal bruto (R$)</label>
-      <input id="salario" name="s" type="number" inputmode="decimal" min="0" step="0.01" required>
+      <input id="salario" name="s" type="number" inputmode="decimal" min="0" max="10000000" step="0.01" required>
       <span class="hint">Salário fixo, sem adicionais nem médias variáveis.</span>
     </div>
 
     <div class="row">
       <div class="field">
         <label for="admissao">Data de admissão</label>
-        <input id="admissao" name="a" type="date" required>
+        <input id="admissao" name="a" type="date" min="1950-01-01" max="2100-12-31" required>
       </div>
       <div class="field">
         <label for="desligamento">Último dia trabalhado</label>
-        <input id="desligamento" name="d" type="date" required>
+        <input id="desligamento" name="d" type="date" min="1950-01-01" max="2100-12-31" required>
       </div>
     </div>
 
@@ -58,7 +58,7 @@
 
     <div class="field" id="campoFgts">
       <label for="fgts">Saldo de FGTS para fins rescisórios (R$)</label>
-      <input id="fgts" name="f" type="number" inputmode="decimal" min="0" step="0.01">
+      <input id="fgts" name="f" type="number" inputmode="decimal" min="0" max="10000000" step="0.01">
       <span class="hint">Consulte no app FGTS. A multa incide sobre todos os depósitos do contrato, inclusive os já sacados.</span>
     </div>
 
@@ -76,7 +76,7 @@
       <summary>Configurações avançadas</summary>
       <div class="field">
         <label for="adiantamento13">Adiantamento de 13º já recebido no ano (R$)</label>
-        <input id="adiantamento13" name="ad" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
+        <input id="adiantamento13" name="ad" type="number" inputmode="decimal" min="0" max="10000000" step="0.01" placeholder="0,00">
         <span class="hint">Primeira parcela ou adiantamento pago junto com as férias.</span>
       </div>
       <div class="check" id="campoProjecao">

@@ -96,6 +96,9 @@ export const ROTULOS_AVISO = {
 };
 
 const MS_POR_DIA = 86_400_000;
+const VALOR_MAXIMO = 10_000_000;
+const ANO_MINIMO = 1950;
+const ANO_MAXIMO = 2100;
 
 /** @param {string} texto */
 export function parseDataLocal(texto) {
@@ -295,18 +298,18 @@ function ehTipoAviso(valor) {
  */
 export function lerEntrada(campos) {
   const texto = (/** @type {string} */ nome) => (campos.get(nome) ?? "").trim();
-  const numero = (/** @type {string} */ nome, /** @type {number} */ vazio) => {
+  const dinheiro = (/** @type {string} */ nome, /** @type {number} */ vazio) => {
     if (texto(nome) === "") return vazio;
-    const valor = Number(texto(nome));
-    return Number.isFinite(valor) ? valor : NaN;
+    if (!/^\d+([.,]\d{1,2})?$/.test(texto(nome))) return NaN;
+    return Number(texto(nome).replace(",", "."));
   };
 
   const modalidade = texto("m");
   const tipoAviso = texto("av");
-  const salario = numero("s", NaN);
-  const saldoFGTS = numero("f", NaN);
-  const adiantamento13 = numero("ad", 0);
-  const feriasVencidas = numero("fv", 0);
+  const salario = dinheiro("s", NaN);
+  const saldoFGTS = dinheiro("f", NaN);
+  const adiantamento13 = dinheiro("ad", 0);
+  const feriasVencidas = texto("fv") === "" ? 0 : Number(texto("fv"));
   const admissao = parseDataLocal(texto("a"));
   const desligamento = parseDataLocal(texto("d"));
   const regras = ehModalidade(modalidade) ? MODALIDADES[modalidade] : null;
@@ -317,16 +320,23 @@ export function lerEntrada(campos) {
   } else if (!ehTipoAviso(tipoAviso) || !regras.avisos.includes(tipoAviso)) {
     erros.push("Selecione o tipo de aviso prévio.");
   }
+  const limite = formatarMoeda(VALOR_MAXIMO);
   if (!(salario > 0)) erros.push("Informe um salário maior que zero.");
-  if (regras && regras.multaFGTS > 0 && !(saldoFGTS >= 0)) {
-    erros.push("Informe um saldo de FGTS válido (zero ou maior).");
+  else if (salario > VALOR_MAXIMO) erros.push(`O salário deve ser de até ${limite}.`);
+  if (regras && regras.multaFGTS > 0) {
+    if (!(saldoFGTS >= 0)) erros.push("Informe um saldo de FGTS válido (zero ou maior).");
+    else if (saldoFGTS > VALOR_MAXIMO) erros.push(`O saldo de FGTS deve ser de até ${limite}.`);
   }
   if (!(adiantamento13 >= 0)) erros.push("O adiantamento de 13º deve ser zero ou maior.");
+  else if (adiantamento13 > VALOR_MAXIMO) erros.push(`O adiantamento de 13º deve ser de até ${limite}.`);
   if (![0, 1, 2].includes(feriasVencidas)) erros.push("Férias vencidas: escolha entre 0 e 2 períodos.");
   if (!admissao) erros.push("Informe a data de admissão.");
   if (!desligamento) erros.push("Informe a data de desligamento.");
   if (admissao && desligamento) {
-    if (desligamento < admissao) {
+    const foraDoIntervalo = (/** @type {Date} */ d) => d.getFullYear() < ANO_MINIMO || d.getFullYear() > ANO_MAXIMO;
+    if (foraDoIntervalo(admissao) || foraDoIntervalo(desligamento)) {
+      erros.push(`As datas devem estar entre ${ANO_MINIMO} e ${ANO_MAXIMO}.`);
+    } else if (desligamento < admissao) {
       erros.push("A data de desligamento não pode ser anterior à admissão.");
     } else if (feriasVencidas > anosDeServico(admissao, desligamento)) {
       erros.push("Há mais períodos de férias vencidas do que anos completos de contrato.");
