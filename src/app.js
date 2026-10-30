@@ -133,7 +133,7 @@ function renderizar(entrada, resultado) {
   );
   elemento("blocoDescontos", HTMLDivElement).hidden = resultado.descontos.length === 0;
   elemento("total", HTMLSpanElement).textContent = formatarMoeda(resultado.total);
-  elemento("fgts", HTMLUListElement).replaceChildren(
+  elemento("listaFgts", HTMLUListElement).replaceChildren(
     ...resultado.fgts.map((v) => itemDeLista(v.titulo, v.detalhe, formatarMoeda(v.valor))),
   );
   elemento("totalFgts", HTMLSpanElement).textContent = formatarMoeda(resultado.totalFGTS);
